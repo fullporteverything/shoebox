@@ -673,3 +673,15 @@ p { margin: 0; }
 .fab { position: fixed; right: 22px; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); z-index: 40; border-radius: 99px; padding: 13px 20px; animation: pop 0.6s var(--ease-spring) both; }
 @media (max-width: 760px) { .fab { bottom: calc(100px + env(safe-area-inset-bottom, 0px)); right: 16px; } }
 @media (max-width: 760px) { .nav a { font-size: 9.5px; padding: 8px 2px; } .nav svg { width: 18px; height: 18px; } }
+
+/* ---------- two-factor ---------- */
+.tf-setup { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px; align-items: center; }
+@media (max-width: 520px) { .tf-setup { grid-template-columns: 1fr; justify-items: center; } }
+.qr-tile { padding: 12px; border-radius: 18px; background: #fff; box-shadow: var(--shadow); line-height: 0; animation: pop 0.5s var(--ease-spring) both; }
+.qr { image-rendering: pixelated; width: 168px; height: 168px; }
+.step-n { width: 22px; height: 22px; border-radius: 8px; flex: none; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: var(--gold-soft); color: var(--gold-ink); font-family: var(--font-mono); }
+.setup-key { display: block; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--bg) 55%, transparent); border: 1px solid var(--glass-border); font-family: var(--font-mono); font-size: 13.5px; letter-spacing: 0.06em; overflow-wrap: anywhere; user-select: all; }
+.code-input { font-family: var(--font-mono); font-size: 24px; letter-spacing: 0.35em; text-align: center; padding: 12px; }
+.code-input::placeholder { letter-spacing: 0.35em; color: var(--ink-3); opacity: 0.5; }
+.recovery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 14px; border-radius: 16px; background: color-mix(in srgb, var(--bg) 55%, transparent); border: 1px dashed color-mix(in srgb, var(--gold) 40%, var(--glass-border)); user-select: all; }
+.recovery code { font-family: var(--font-mono); font-size: 14.5px; text-align: center; padding: 6px; border-radius: 8px; background: var(--glass); animation: rise 0.4s var(--ease-out) both; }

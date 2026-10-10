@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react'
 import { Icon } from '../components/icons.js'
 import { PageTitle } from '../components/Shell.js'
-import { CountUp, Drawer, Link, Seg, money } from '../components/ui.js'
+import { CountUp, Drawer, Link, Seg, money, Money } from '../components/ui.js'
 import { AnalyzeError, ask, detectEngine } from '../lib/ai.js'
 import type { Turn } from '../lib/ai.js'
 import { contextFor } from '../lib/assistant.js'
@@ -258,7 +258,7 @@ function TripCard({ trip, result, log, onSave }: { trip: Trip; result: TripResul
           <thead><tr><th>Part of the trip</th><th className="r">Paid</th><th className="r">Counts</th></tr></thead>
           <tbody>
             {(['transport', 'lodging', 'meals', 'other'] as const).filter((k) => result[k].paid > 0).map((k) => (
-              <tr key={k}><td>{{ transport: 'Flights and trains', lodging: 'Lodging', meals: 'Meals (50%)', other: 'Other business costs' }[k]}</td><td className="r num">{money(result[k].paid)}</td><td className="r num">{money(result[k].allowed)}</td></tr>
+              <tr key={k}><td>{{ transport: 'Flights and trains', lodging: 'Lodging', meals: 'Meals (50%)', other: 'Other business costs' }[k]}</td><td className="r num"><Money v={result[k].paid} /></td><td className="r num"><Money v={result[k].allowed} /></td></tr>
             ))}
           </tbody>
         </table>
@@ -313,7 +313,7 @@ function IncomeCard({ pic }: { pic: Picture }) {
                 <div className="row-title">{i.source}</div>
                 <div className="row-sub"><span className="chip sea" style={{ fontSize: 11 }}>{typeLabel[i.type]}</span><span>{i.date}</span>{i.fromReceipt && <span>· from a document</span>}</div>
               </div>
-              <div className="row-amt"><span className="money">{money(i.amount)}</span>{i.withheld > 0 && <small style={{ color: 'var(--ink-3)' }}>{money(i.withheld)} withheld</small>}</div>
+              <div className="row-amt"><span className="money"><Money v={i.amount} /></span>{i.withheld > 0 && <small style={{ color: 'var(--ink-3)' }}><Money v={i.withheld} /> withheld</small>}</div>
               {!i.fromReceipt && incomes.some((x) => x.id === i.id) ? <button className="btn btn-ghost btn-icon btn-sm" aria-label="Remove" onClick={() => deleteIncome(i.id)}><Icon name="trash" /></button> : <span />}
             </div>
           ))}
@@ -343,9 +343,9 @@ function Breakdown({ e }: { e: Estimate }) {
     <table className="tax-table">
       <tbody>
         {rows.filter(([, v]) => v !== 0).map(([k, v, s]) => (
-          <tr key={k} style={s ? { fontWeight: 650 } : undefined}><td>{k}</td><td className="r num">{v < 0 ? '−' + money(-v, false) : money(v, false)}</td></tr>
+          <tr key={k} style={s ? { fontWeight: 650 } : undefined}><td>{k}</td><td className="r num">{v < 0 ? '−' : ''}<Money v={Math.abs(v)} whole /></td></tr>
         ))}
-        <tr><td>State tax</td><td className="r num">{e.state.amount == null ? 'Not estimated' : money(e.state.amount, false)}</td></tr>
+        <tr><td>State tax</td><td className="r num">{e.state.amount == null ? 'Not estimated' : <Money v={e.state.amount} whole />}</td></tr>
       </tbody>
     </table>
   )
@@ -455,12 +455,12 @@ export function Savings() {
             <div className="card kpi lift" style={{ ['--i' as string]: 0 }}>
               <div className="k"><Icon name="arrowRight" size={16} /> Income {pace === 'pace' ? 'for the year' : 'so far'}</div>
               <div className="v"><CountUp value={shown.wages + shown.seGross + shown.investment} format={(n) => money(n, false)} /></div>
-              <div className="d">{pic.incomes.length} source{pic.incomes.length === 1 ? '' : 's'} · net business profit {money(shown.seNet, false)}</div>
+              <div className="d">{pic.incomes.length} source{pic.incomes.length === 1 ? '' : 's'} · net business profit <Money v={shown.seNet} whole /></div>
             </div>
             <div className="card kpi lift" style={{ ['--i' as string]: 1 }}>
               <div className="k"><Icon name="scale" size={16} /> Estimated tax</div>
               <div className="v"><CountUp value={shown.totalTax} format={(n) => money(n, false)} /></div>
-              <div className="d">Federal {money(shown.federalTotal, false)} · state {shown.state.amount == null ? 'not estimated' : money(shown.state.amount, false)}</div>
+              <div className="d">Federal <Money v={shown.federalTotal} whole /> · state {shown.state.amount == null ? 'not estimated' : <Money v={shown.state.amount} whole />}</div>
             </div>
             <div className="card kpi lift" style={{ ['--i' as string]: 2 }}>
               <div className="k"><Icon name="check" size={16} /> Paid so far</div>

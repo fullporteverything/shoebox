@@ -34,6 +34,7 @@ export type Account = {
   lastSeen: { ua: string; tz: string; at: number } | null
   incident: Incident | null
   terms: { version: string; at: number }
+  twoFactor?: boolean // display hint only; the encrypted 'security' record is what's enforced
 }
 
 type Row = { key: string; userId: string; id: string; kind: string; sealed: Sealed; h: string }
@@ -170,7 +171,7 @@ export async function createAccount(email: string, password: string, termsVersio
   return s
 }
 
-export type UnlockResult = { session: Session; records: { id: string; kind: string; value: unknown }[]; fingerprintChanged: boolean; failedBefore: number }
+export type UnlockResult = { session: Session; records: { id: string; kind: string; value: unknown }[]; fingerprintChanged: boolean; failedBefore: number; secondFactor: boolean }
 
 // Unlocks the vault and verifies it. Integrity failures throw VaultError('tampered');
 // the caller decides what to do (the sentinel shreds).
@@ -217,11 +218,43 @@ export async function unlock(email: string, password: string): Promise<UnlockRes
   const fp = fingerprint()
   const fingerprintChanged = !!acct.lastSeen && (acct.lastSeen.ua !== fp.ua || acct.lastSeen.tz !== fp.tz)
   const failedBefore = acct.failed
-  acct.failed = 0
-  acct.lockUntil = 0
-  acct.lastSeen = fp
-  await putAccount(acct)
-  return { session, records, fingerprintChanged, failedBefore }
+  // With two-factor on, the attempt counter keeps running until the code is
+  // accepted too, so knowing the password doesn't buy unlimited code guesses.
+  const secondFactor = records.some((r) => r.kind === 'security' && (r.value as { enabled?: boolean })?.enabled)
+  if (!secondFactor) await finishUnlock(email)
+  return { session, records, fingerprintChanged, failedBefore, secondFactor }
+}
+
+export function finishUnlock(email: string) {
+  return withLock(async () => {
+    const acct = await getAccount(email)
+    if (!acct) return
+    acct.failed = 0
+    acct.lockUntil = 0
+    acct.lastSeen = fingerprint()
+    await putAccount(acct)
+  })
+}
+
+// Records one wrong code (or password) with the same growing lockout.
+export function noteFailure(email: string): Promise<Account | undefined> {
+  return withLock(async () => {
+    const acct = await getAccount(email)
+    if (!acct) return undefined
+    acct.failed += 1
+    if (acct.failed >= 3) acct.lockUntil = Date.now() + Math.min(3_600_000, 30_000 * 2 ** (acct.failed - 3))
+    await putAccount(acct)
+    return acct
+  })
+}
+
+export function setTwoFactorHint(email: string, on: boolean) {
+  return withLock(async () => {
+    const acct = await getAccount(email)
+    if (!acct) return
+    acct.twoFactor = on
+    await putAccount(acct)
+  })
 }
 
 export async function put(s: Session, id: string, kind: string, value: unknown) {
@@ -285,7 +318,7 @@ export async function shred(email: string, incident: Omit<Incident, 'destroyed'>
     'Encryption key',
     ...Object.entries(kinds)
       .filter(([k]) => k !== 'canary')
-      .map(([k, n]) => `${n} ${({ receipt: 'receipt', income: 'income record', trip: 'trip log', log: 'security log', profile: 'profile' } as Record<string, string>)[k] ?? k}${n > 1 ? 's' : ''}`),
+      .map(([k, n]) => `${n} ${({ receipt: 'receipt', income: 'income record', trip: 'trip log', log: 'security log', profile: 'profile', security: 'two-factor key' } as Record<string, string>)[k] ?? k}${n > 1 ? 's' : ''}`),
   ]
   const full: Incident = { ...incident, destroyed }
   acct.wrapped = null

@@ -19,7 +19,7 @@ tax rules, and keeps it encrypted on your device.
   meals, $25 gifts, $2,500 de minimis, W-2 employees can't deduct work
   expenses, $250 charity acknowledgments, $75 receipt rule) and adds state
   notes for all 50 states plus DC.
-- **Accounts:** sign-up, sign-in, profile, password change, delete account.
+- **Accounts:** sign-up, sign-in, optional two-factor (authenticator app codes with recovery codes), profile and settings, password change, delete account.
 - **Security center:** six breach sensors, a policy you control, an encrypted
   event log, a tamper drill and a manual shred.
 - **Legal:** Terms of Service, Privacy Policy, Security and Breach Policy, and

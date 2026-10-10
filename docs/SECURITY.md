@@ -12,6 +12,7 @@ breach. The main risks are on the device itself.
 | Records edited, swapped or deleted in storage | AEAD tags bound to user and record id, an HMAC-signed index, a canary record | **Shred** (checked at unlock and every 45 s while open) |
 | Password guessing | Lockouts after 3 misses, doubling up to 1 hour | **Shred** at your limit (5, 10 or never) |
 | Malicious extension or injected script | MutationObserver for scripts, frames, embeds and inline handlers added after boot; strict CSP when deployed | Lock (default) or **shred** (strict mode) |
+| Stolen password used in the app | Optional TOTP two-factor (RFC 6238; secret sealed in the vault; one-time hashed recovery codes; replay-protected); wrong codes count toward the same lockout and shred limit as wrong passwords | Lockout, then **shred** |
 | Session from a new browser or time zone | Fingerprint compared with the last unlock | Alert |
 | Unattended unlocked screen | Idle lock (5, 15 or 30 min); keys exist only in memory | Lock |
 | Several tabs open | BroadcastChannel; Web Locks serialize writes across tabs | Every tab locks or shreds together |
@@ -27,6 +28,7 @@ signature mismatch that would cause a false shred.
   storage access could reset them. They still face PBKDF2 for every guess.
 - Clearing site data deletes the vault. There is no backup or sync yet.
 - Injected-code detection is a tripwire, not a guarantee.
+- Two-factor gates the app's sign-in, but the TOTP secret can't be part of the encryption key (codes change every 30 seconds). Someone who copies the raw browser storage and also knows the password could decrypt without a code. Server-enforced 2FA (item 2 below) closes this.
 
 ## Before a public launch
 

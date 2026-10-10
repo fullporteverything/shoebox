@@ -124,6 +124,7 @@ ${COMPANY}, [mailing address]. ${CONTACT}.
 ## How your data is protected
 - **Encryption at rest:** every record is sealed with AES-256-GCM using a random data key. The data key is wrapped with a key derived from your password (PBKDF2-SHA-256, 600,000 iterations, unique salt).
 - **Tamper evidence:** each record is bound to your account and its own ID. The vault index is signed with HMAC-SHA-256, and a canary record must decrypt to a known value on every unlock.
+- **Two-factor sign-in (optional):** codes from an authenticator app, with one-time recovery codes. Wrong codes count toward the same lockout and shred limit as wrong passwords.
 - **Minimization:** images are downscaled and stripped of metadata such as GPS location before they are stored or sent anywhere.
 - **Transport:** all traffic uses TLS. The site sends strict security headers, including a Content Security Policy that blocks third-party scripts, HSTS, and frame protection.
 

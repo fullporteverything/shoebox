@@ -1,7 +1,7 @@
 import React from 'react'
 import { Icon } from '../components/icons.js'
 import { PageTitle } from '../components/Shell.js'
-import { money } from '../components/ui.js'
+import { Money, Count } from '../components/ui.js'
 import { useSession } from '../lib/session.js'
 import { RETENTION_YEARS, RULES_REVIEWED, categories, groupLabels } from '../lib/tax/rules.js'
 import type { Group } from '../lib/tax/rules.js'
@@ -30,7 +30,7 @@ export function TaxMap() {
             const sum = cats.reduce((s, c) => s + totals(c.id).ded, 0)
             return (
               <div key={g} className="card rise" style={{ animationDelay: `${gi * 60}ms` }}>
-                <div className="card-head"><h2>{groupLabels[g]}</h2><span className="money" style={{ color: 'var(--gold-ink)', fontWeight: 600 }}>{money(sum)}</span></div>
+                <div className="card-head"><h2>{groupLabels[g]}</h2><span className="money" style={{ color: 'var(--gold-ink)', fontWeight: 600 }}><Money v={sum} /></span></div>
                 <div className="table-wrap">
                   <table className="tax-table">
                     <thead><tr><th>Category</th><th>Form and line</th><th className="r">Items</th><th className="r">Paid</th><th className="r">Counts</th></tr></thead>
@@ -44,9 +44,9 @@ export function TaxMap() {
                               <div className="faint" style={{ fontSize: 12.5, marginTop: 3, maxWidth: 380 }}>{c.rule}</div>
                             </td>
                             <td style={{ whiteSpace: 'nowrap' }}>{c.form}<div className="faint" style={{ fontSize: 12 }}>{c.ruleRef}</div></td>
-                            <td className="r num">{t.n}</td>
-                            <td className="r num">{money(t.paid)}</td>
-                            <td className="r num">{money(t.ded)}</td>
+                            <td className="r num"><Count v={t.n} /></td>
+                            <td className="r num"><Money v={t.paid} /></td>
+                            <td className="r num"><Money v={t.ded} /></td>
                           </tr>
                         )
                       })}

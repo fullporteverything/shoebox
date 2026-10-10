@@ -22,7 +22,8 @@ function AppPage({ route }: { route: string }) {
     case '/app/receipts': return <Receipts />
     case '/app/tax': return <TaxMap />
     case '/app/security': return <Security />
-    case '/app/profile': return <Profile />
+    case '/app/profile': return <Profile tab="profile" />
+    case '/app/profile/settings': return <Profile tab="settings" />
     default: return <Overview />
   }
 }
@@ -37,7 +38,7 @@ export function App() {
   // Visiting an auth page while unlocked goes to the app. This keys on the
   // route only, so the sign-up form can send people to the inbox itself.
   useEffect(() => {
-    if (phaseRef.current === 'unlocked' && (route === '/signin' || route === '/signup')) navigate('/app', { replace: true })
+    if (phaseRef.current === 'unlocked' && route === '/signin') navigate('/app', { replace: true })
   }, [route])
   useEffect(() => {
     if (phase === 'signed_out' && inApp) navigate('/signin', { replace: true })
@@ -45,6 +46,7 @@ export function App() {
 
   let page: React.ReactNode
   if (phase === 'shredded') page = <Lockdown />
+  else if (phase === 'two_factor' && (inApp || route === '/signin')) page = <SignIn />
   else if (inApp && phase === 'locked') page = <SignIn locked />
   else if (inApp && phase === 'unlocked') page = <Shell route={route}><div key={route} className={supportsViewTransitions() ? undefined : 'page-enter'}><AppPage route={route} /></div></Shell>
   else if (inApp) page = <SignIn />

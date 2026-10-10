@@ -57,6 +57,21 @@ export function CountUp({ value, format = (n: number) => money(n), duration = 90
   return <span className="num">{format(shown)}</span>
 }
 
+// Money that counts up when it appears or changes.
+export function Money({ v, whole }: { v: number; whole?: boolean }) {
+  return <CountUp value={v} format={(n) => money(n, !whole)} />
+}
+
+export function Count({ v }: { v: number }) {
+  return <CountUp value={v} format={(n) => Math.round(n).toLocaleString('en-US')} />
+}
+
+// A receipt's paid amount: counts up in USD, or shows the original currency.
+export function Paid({ r }: { r: Receipt }) {
+  const usd = r.extraction.currency === 'USD' ? r.extraction.total : usdOf(r)
+  return usd != null ? <Money v={usd} /> : <span className="num">{`${r.extraction.total.toFixed(2)} ${r.extraction.currency}`}</span>
+}
+
 export function CatChip({ id, small }: { id: CategoryId; small?: boolean }) {
   const c = categoryById[id]
   return (

@@ -8,9 +8,12 @@ import { classify } from './tax/classify.js'
 import type { IncomeEntry, Plan, Profile, Receipt, TripLog } from './types.js'
 import { emptyPlan } from './types.js'
 import { TERMS_VERSION } from '../legal/content.js'
+import { newRecoveryCodes, newSecret, normalizeRecovery, otpauthUri, verifyTotp } from './totp.js'
+import type { TwoFactor } from './totp.js'
+import { sha256 } from './crypto.js'
 
 export type LogEntry = { at: number; level: 'info' | 'alert' | 'lock' | 'shred'; sensor?: SensorId; text: string }
-export type Phase = 'signed_out' | 'unlocked' | 'locked' | 'shredded'
+export type Phase = 'signed_out' | 'two_factor' | 'unlocked' | 'locked' | 'shredded'
 
 type Toast = { id: number; tone: 'good' | 'warn' | 'bad' | 'info'; text: string }
 
@@ -28,7 +31,14 @@ type Ctx = {
   toast: (tone: Toast['tone'], text: string) => void
   dismissToast: (id: number) => void
   signUp: (email: string, password: string, profile: Profile) => Promise<void>
-  signIn: (email: string, password: string) => Promise<{ error?: string; until?: number }>
+  signIn: (email: string, password: string) => Promise<{ error?: string; until?: number; needs2fa?: boolean }>
+  verifySecondFactor: (code: string, recovery: boolean) => Promise<{ error?: string; until?: number }>
+  cancelSecondFactor: () => void
+  twoFactor: { enabled: boolean; recoveryLeft: number; enabledAt: number | null }
+  beginTwoFactor: () => { secret: string; uri: string }
+  confirmTwoFactor: (secret: string, code: string) => Promise<string[] | null>
+  disableTwoFactor: (code: string) => Promise<boolean>
+  regenerateRecovery: (code: string) => Promise<string[] | null>
   signOut: () => void
   lock: (why: string) => void
   saveReceipt: (r: Receipt) => Promise<void>
@@ -77,6 +87,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [incident, setIncident] = useState<Incident | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const sessionRef = useRef<Session | null>(null)
+  const pendingRef = useRef<{ res: vault.UnlockResult; tf: TwoFactor } | null>(null)
+  const [tf, setTf] = useState<TwoFactor | null>(null)
   const logRef = useRef<LogEntry[]>([])
   const writing = useRef(0)
   const channel = useRef<ReturnType<typeof tabChannel> | null>(null)
@@ -110,6 +122,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const dropKeys = () => {
     sessionRef.current = null
+    pendingRef.current = null
+    setTf(null)
     setProfile(null)
     setReceipts([])
     setIncomes([])
@@ -172,6 +186,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       else if (r.kind === 'receipt') rs.push(r.value as Receipt)
       else if (r.kind === 'log') lg = r.value as LogEntry[]
       else if (r.kind === 'income') inc.push(r.value as IncomeEntry)
+      else if (r.kind === 'security') setTf(r.value as TwoFactor)
       else if (r.kind === 'trip') {
         const t = r.value as TripLog
         trips[t.key] = t
@@ -206,20 +221,22 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   )
 
   const signIn = useCallback(
-    async (rawEmail: string, password: string): Promise<{ error?: string; until?: number }> => {
+    async (rawEmail: string, password: string): Promise<{ error?: string; until?: number; needs2fa?: boolean }> => {
       const em = rawEmail.trim().toLowerCase()
       try {
         const res = await vault.unlock(em, password)
-        sessionRef.current = res.session
         setEmail(em)
         writeLastEmail(em)
-        hydrate(res.records)
         const acct = await vault.getAccount(em)
         if (acct) setPolicyState(acct.policy)
         setIncident(null)
-        setPhase('unlocked')
-        addLog({ level: 'info', text: res.failedBefore ? `Unlocked after ${res.failedBefore} wrong password attempt${res.failedBefore > 1 ? 's' : ''}.` : 'Unlocked.' })
-        if (res.fingerprintChanged) await trip('fingerprint', 'alert', 'This unlock came from a different browser or time zone than last time. If it wasn’t you, change your password.')
+        if (res.secondFactor) {
+          // Keys stay out of the app until the code checks out.
+          pendingRef.current = { res, tf: res.records.find((r) => r.kind === 'security')!.value as TwoFactor }
+          setPhase('two_factor')
+          return { needs2fa: true }
+        }
+        await completeUnlock(res)
         return {}
       } catch (e) {
         if (!(e instanceof vault.VaultError)) return { error: 'Something went wrong opening the vault. Try again.' }
@@ -254,6 +271,127 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     },
     [addLog, doShred, trip],
   )
+
+  const completeUnlock = async (res: vault.UnlockResult, how = '') => {
+    sessionRef.current = res.session
+    pendingRef.current = null
+    hydrate(res.records)
+    setPhase('unlocked')
+    addLog({ level: 'info', text: (res.failedBefore ? `Unlocked after ${res.failedBefore} failed attempt${res.failedBefore > 1 ? 's' : ''}` : 'Unlocked') + how + '.' })
+    if (res.fingerprintChanged) await trip('fingerprint', 'alert', 'This unlock came from a different browser or time zone than last time. If it wasn’t you, change your password.')
+  }
+
+  const verifySecondFactor = useCallback(
+    async (code: string, recovery: boolean): Promise<{ error?: string; until?: number }> => {
+      const pending = pendingRef.current
+      if (!pending) return { error: 'Start again with your password.' }
+      const em = pending.res.session.email
+      const acctNow = await vault.getAccount(em)
+      if (acctNow && acctNow.lockUntil > Date.now()) return { error: 'Too many wrong codes. Wait for the timer.', until: acctNow.lockUntil }
+      let ok = false
+      let nextTf = pending.tf
+      if (recovery) {
+        const norm = normalizeRecovery(code)
+        const h = norm ? await sha256(norm) : ''
+        if (h && pending.tf.recovery.includes(h)) {
+          ok = true
+          nextTf = { ...pending.tf, recovery: pending.tf.recovery.filter((x) => x !== h) }
+        }
+      } else {
+        const step = await verifyTotp(pending.tf.secret, code, pending.tf.lastStep)
+        if (step !== null) {
+          ok = true
+          nextTf = { ...pending.tf, lastStep: step }
+        }
+      }
+      if (!ok) {
+        const acct = await vault.noteFailure(em)
+        if (acct && acct.policy.wipeAfter && acct.failed >= acct.policy.wipeAfter) {
+          await doShred(em, 'Password guessing', `${acct.failed} failed sign-in attempts in a row (password or two-factor code) reached your wipe limit of ${acct.policy.wipeAfter}.`)
+          return { error: 'shredded' }
+        }
+        const left = acct?.policy.wipeAfter ? acct.policy.wipeAfter - acct.failed : null
+        return { error: `That ${recovery ? 'recovery code' : 'code'} didn’t work.${left !== null ? ` ${left} attempt${left === 1 ? '' : 's'} left before the vault shreds itself.` : ''}`, until: acct?.lockUntil || undefined }
+      }
+      await vault.finishUnlock(em)
+      await vault.put(pending.res.session, 'security', 'security', nextTf)
+      const records = pending.res.records.map((r) => (r.kind === 'security' ? { ...r, value: nextTf } : r))
+      await completeUnlock({ ...pending.res, records }, recovery ? ` with a recovery code (${nextTf.recovery.length} left)` : ' with a two-factor code')
+      if (recovery) toast('warn', `Recovery code used. ${nextTf.recovery.length} left. Make new ones in Profile → Settings if you’re running low.`)
+      return {}
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [doShred, toast],
+  )
+
+  const cancelSecondFactor = useCallback(() => {
+    dropKeys()
+    setPhase('signed_out')
+  }, [])
+
+  const beginTwoFactor = useCallback(() => {
+    const secret = newSecret()
+    return { secret, uri: otpauthUri(secret, email) }
+  }, [email])
+
+  const confirmTwoFactor = useCallback(
+    async (secret: string, code: string) => {
+      const step = await verifyTotp(secret, code, 0)
+      if (step === null) return null
+      const { codes, hashes } = await newRecoveryCodes()
+      const next: TwoFactor = { enabled: true, secret, lastStep: step, recovery: hashes, enabledAt: Date.now() }
+      await write((s) => vault.put(s, 'security', 'security', next))
+      await vault.setTwoFactorHint(email, true)
+      setTf(next)
+      addLog({ level: 'info', text: 'Two-factor authentication turned on.' })
+      return codes
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [addLog, email],
+  )
+
+  // Changing two-factor settings needs a current code (or a recovery code).
+  const checkCurrent = async (code: string): Promise<TwoFactor | null> => {
+    if (!tf?.enabled) return null
+    const step = await verifyTotp(tf.secret, code, tf.lastStep)
+    if (step !== null) return { ...tf, lastStep: step }
+    const norm = normalizeRecovery(code)
+    const h = norm ? await sha256(norm) : ''
+    if (h && tf.recovery.includes(h)) return { ...tf, recovery: tf.recovery.filter((x) => x !== h) }
+    return null
+  }
+
+  const disableTwoFactor = useCallback(
+    async (code: string) => {
+      const ok = await checkCurrent(code)
+      if (!ok) return false
+      const next: TwoFactor = { enabled: false, secret: '', lastStep: 0, recovery: [], enabledAt: 0 }
+      await write((s) => vault.put(s, 'security', 'security', next))
+      await vault.setTwoFactorHint(email, false)
+      setTf(next)
+      addLog({ level: 'alert', text: 'Two-factor authentication turned off.' })
+      return true
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [tf, email, addLog],
+  )
+
+  const regenerateRecovery = useCallback(
+    async (code: string) => {
+      const ok = await checkCurrent(code)
+      if (!ok) return null
+      const { codes, hashes } = await newRecoveryCodes()
+      const next = { ...ok, recovery: hashes }
+      await write((s) => vault.put(s, 'security', 'security', next))
+      setTf(next)
+      addLog({ level: 'info', text: 'New recovery codes generated; the old ones stopped working.' })
+      return codes
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [tf, addLog],
+  )
+
+  const twoFactor = useMemo(() => ({ enabled: !!tf?.enabled, recoveryLeft: tf?.recovery.length ?? 0, enabledAt: tf?.enabled ? tf.enabledAt : null }), [tf])
 
   const signOut = useCallback(() => {
     dropKeys()
@@ -435,10 +573,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Ctx>(
     () => ({
       phase, email, profile, receipts, incomes, tripLogs, log, policy, incident, toasts, toast, dismissToast, signUp, signIn, signOut, lock,
+      verifySecondFactor, cancelSecondFactor, twoFactor, beginTwoFactor, confirmTwoFactor, disableTwoFactor, regenerateRecovery,
       saveReceipt, deleteReceipt, saveProfile, savePlan, saveIncome, deleteIncome, saveTripLog, savePolicy, changePassword, shredNow, tamperDrill,
       deleteAccount, acknowledgeIncident,
     }),
     [phase, email, profile, receipts, incomes, tripLogs, log, policy, incident, toasts, toast, dismissToast, signUp, signIn, signOut, lock,
+      verifySecondFactor, cancelSecondFactor, twoFactor, beginTwoFactor, confirmTwoFactor, disableTwoFactor, regenerateRecovery,
       saveReceipt, deleteReceipt, saveProfile, savePlan, saveIncome, deleteIncome, saveTripLog, savePolicy, changePassword, shredNow, tamperDrill,
       deleteAccount, acknowledgeIncident],
   )

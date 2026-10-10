@@ -1,7 +1,7 @@
 import React from 'react'
 import type { ReactNode } from 'react'
 import { Icon, Logo } from '../components/icons.js'
-import { Link } from '../components/ui.js'
+import { Link, Money } from '../components/ui.js'
 import { legalDocs } from '../legal/content.js'
 import { RULES_REVIEWED } from '../lib/tax/rules.js'
 import { useSession } from '../lib/session.js'
@@ -67,14 +67,14 @@ function Sorter() {
       <div className="scanbar" />
       <div className="bins">
         {[
-          { t: 'Meals', s: 'Sch C · 50%', v: '$42.20', h: 12 },
-          { t: 'Software', s: 'Sch C · line 27a', v: '$48.00', h: 300 },
-          { t: 'Car & truck', s: 'Sch C · line 9', v: '$52.25', h: 200 },
+          { t: 'Meals', s: 'Sch C · 50%', v: 42.2, h: 12 },
+          { t: 'Software', s: 'Sch C · line 27a', v: 48, h: 300 },
+          { t: 'Car & truck', s: 'Sch C · line 9', v: 52.25, h: 200 },
         ].map((b) => (
           <div key={b.t} className="bin glass-card">
             <div className="bt"><span className="cat-dot" style={{ ['--h' as string]: b.h }} />{b.t}</div>
             <div className="bs">{b.s}</div>
-            <div className="bv">{b.v}</div>
+            <div className="bv"><Money v={b.v} /></div>
           </div>
         ))}
       </div>

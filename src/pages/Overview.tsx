@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { Icon } from '../components/icons.js'
 import { ReceiptDrawer } from '../components/ReceiptDrawer.js'
 import { PageTitle } from '../components/Shell.js'
-import { CatChip, CountUp, Donut, Link, money, paid } from '../components/ui.js'
+import { CatChip, CountUp, Donut, Link, money, Money, Paid } from '../components/ui.js'
 import { useSession } from '../lib/session.js'
 import { categoryById, groupLabels } from '../lib/tax/rules.js'
 import type { CategoryId } from '../lib/tax/rules.js'
@@ -113,7 +113,7 @@ export function Overview() {
                   <div key={id} className="legend-row">
                     <span className="cat-dot" style={{ ['--h' as string]: categoryById[id].hue }} />
                     <span className="name">{categoryById[id].label} <span className="faint" style={{ fontSize: 12 }}>· {groupLabels[categoryById[id].group]}</span></span>
-                    <span className="money">{money(v, false)}</span>
+                    <span className="money"><Money v={v} whole /></span>
                   </div>
                 ))}
               </div>
@@ -138,7 +138,7 @@ export function Overview() {
                       <div className="row-title">{r.extraction.merchant}</div>
                       <div className="row-sub"><CatChip id={r.classification.category} small /></div>
                     </div>
-                    <div className="row-amt"><span className="money">{paid(r)}</span></div>
+                    <div className="row-amt"><span className="money"><Paid r={r} /></span></div>
                   </button>
                 ))}
               </div>

@@ -1,14 +1,81 @@
 import React, { useState } from 'react'
 import { Icon } from '../components/icons.js'
+import { navigate } from '../lib/router.js'
 import { PageTitle } from '../components/Shell.js'
-import { Avatar, Link, Seg } from '../components/ui.js'
+import { Avatar, Drawer, Link, Seg } from '../components/ui.js'
+import { RecoveryCodes, TwoFactorSetup } from '../components/TwoFactorSetup.js'
 import { TERMS_VERSION } from '../legal/content.js'
 import { passwordStrength } from '../lib/crypto.js'
 import { useSession } from '../lib/session.js'
 import { states } from '../lib/tax/states.js'
 import type { FilingStatus, Profile as P, WorkType } from '../lib/types.js'
 
-export function Profile() {
+function TwoFactorCard() {
+  const { twoFactor, disableTwoFactor, regenerateRecovery, toast } = useSession()
+  const [mode, setMode] = useState<null | 'setup' | 'disable' | 'regen'>(null)
+  const [code, setCode] = useState('')
+  const [error, setError] = useState('')
+  const [codes, setCodes] = useState<string[] | null>(null)
+  const close = () => { setMode(null); setCode(''); setError(''); setCodes(null) }
+  return (
+    <div className="card rise">
+      <div className="card-head">
+        <h2>Two-factor authentication</h2>
+        <span className={'chip ' + (twoFactor.enabled ? 'good' : 'warn')}><span className="dot" /> {twoFactor.enabled ? 'On' : 'Off'}</span>
+      </div>
+      <p className="muted" style={{ fontSize: 14 }}>
+        {twoFactor.enabled
+          ? `Every sign-in asks for a code from your authenticator app. ${twoFactor.recoveryLeft} recovery code${twoFactor.recoveryLeft === 1 ? '' : 's'} left.`
+          : 'Add a code from your phone to every sign-in, so a stolen password alone can’t open your vault.'}
+      </p>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+        {twoFactor.enabled ? (
+          <>
+            <button className="btn btn-sm" onClick={() => setMode('regen')}><Icon name="key" /> New recovery codes</button>
+            <button className="btn btn-sm btn-danger" onClick={() => setMode('disable')}>Turn off</button>
+          </>
+        ) : (
+          <button className="btn btn-gold" onClick={() => setMode('setup')}><Icon name="shield" /> Turn on two-factor</button>
+        )}
+      </div>
+      {mode === 'setup' && (
+        <Drawer eyebrow="Settings" title="Set up two-factor" onClose={close}>
+          <TwoFactorSetup onDone={() => { close(); toast('good', 'Two-factor is on. You’ll be asked for a code at every sign-in.') }} />
+        </Drawer>
+      )}
+      {(mode === 'disable' || mode === 'regen') && (
+        <Drawer eyebrow="Settings" title={mode === 'disable' ? 'Turn off two-factor' : 'New recovery codes'} onClose={close}>
+          {codes ? (
+            <RecoveryCodes codes={codes} onDone={() => { close(); toast('good', 'New recovery codes saved. The old ones no longer work.') }} doneLabel="Done" />
+          ) : (
+            <form className="stack" style={{ gap: 14 }} onSubmit={async (e) => {
+              e.preventDefault()
+              setError('')
+              if (mode === 'disable') {
+                if (await disableTwoFactor(code)) { close(); toast('warn', 'Two-factor is off.') }
+                else setError('That code didn’t work.')
+              } else {
+                const c = await regenerateRecovery(code)
+                if (c) setCodes(c)
+                else setError('That code didn’t work.')
+              }
+            }}>
+              <p className="muted" style={{ fontSize: 14 }}>{mode === 'disable' ? 'Confirm with a code from your authenticator app, or a recovery code. Your vault will then open with just your password.' : 'Confirm with a current code. Your old recovery codes stop working.'}</p>
+              <div className="field">
+                <label htmlFor="tf-confirm">Code</label>
+                <input id="tf-confirm" className="input code-input" autoComplete="one-time-code" placeholder="123456 or abcd-efgh" value={code} onChange={(e) => setCode(e.target.value)} />
+              </div>
+              {error && <div className="error"><Icon name="alert" size={16} /> {error}</div>}
+              <button className={'btn ' + (mode === 'disable' ? 'btn-danger' : 'btn-gold')} disabled={code.trim().length < 6}>{mode === 'disable' ? 'Turn off two-factor' : 'Make new codes'}</button>
+            </form>
+          )}
+        </Drawer>
+      )}
+    </div>
+  )
+}
+
+export function Profile({ tab }: { tab: 'profile' | 'settings' }) {
   const { profile, saveProfile, changePassword, deleteAccount, signOut, toast } = useSession()
   const [p, setP] = useState<P | null>(profile)
   const [cur, setCur] = useState('')
@@ -28,6 +95,10 @@ export function Profile() {
         sub="These details change how documents are sorted. When you save, every receipt you haven’t overridden is re-checked against the new rules."
         actions={<button className="btn" onClick={signOut}><Icon name="logout" /> Sign out</button>}
       />
+      <div style={{ marginBottom: 18 }}>
+        <Seg label="Section" value={tab} onChange={(v) => navigate(v === 'settings' ? '/app/profile/settings' : '/app/profile')} options={[{ value: 'profile', label: 'Profile' }, { value: 'settings', label: 'Settings' }]} />
+      </div>
+      {tab === 'profile' ? (
       <div className="split">
         <div className="stack">
           <form
@@ -95,6 +166,17 @@ export function Profile() {
           </form>
         </div>
         <div className="stack">
+          <div className="card rise">
+            <div className="card-head"><h2>Security settings</h2></div>
+            <p className="muted" style={{ fontSize: 14 }}>Two-factor sign-in, password, agreements and account deletion are on the Settings tab.</p>
+            <button className="btn" style={{ marginTop: 12 }} onClick={() => navigate('/app/profile/settings')}><Icon name="shield" /> Open settings</button>
+          </div>
+        </div>
+      </div>
+      ) : (
+      <div className="split">
+        <div className="stack">
+          <TwoFactorCard />
           <form
             className="card rise"
             style={{ animationDelay: '0.08s' }}
@@ -128,6 +210,8 @@ export function Profile() {
               <p className="hint">Only the key wrapper changes, so this is instant. Your receipts stay encrypted with the same data key.</p>
             </div>
           </form>
+        </div>
+        <div className="stack">
           <div className="card rise" style={{ animationDelay: '0.12s' }}>
             <div className="card-head"><h2>Agreements</h2></div>
             <p className="muted" style={{ fontSize: 14 }}>You accepted the terms version {TERMS_VERSION}.</p>
@@ -148,6 +232,7 @@ export function Profile() {
           </div>
         </div>
       </div>
+      )}
     </>
   )
 }

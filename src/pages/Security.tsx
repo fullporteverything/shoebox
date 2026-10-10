@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Icon } from '../components/icons.js'
 import type { IconName } from '../components/icons.js'
 import { PageTitle } from '../components/Shell.js'
-import { Seg, Switch } from '../components/ui.js'
+import { Count, Link, Seg, Switch } from '../components/ui.js'
 import { PBKDF2_ITERATIONS } from '../lib/crypto.js'
 import { sensors } from '../lib/sentinel.js'
 import type { SensorId } from '../lib/sentinel.js'
@@ -28,7 +28,7 @@ function ConfirmBox({ phrase, label, onConfirm, onCancel }: { phrase: string; la
 }
 
 export function Security() {
-  const { policy, savePolicy, log, lock, shredNow, tamperDrill, toast } = useSession()
+  const { policy, savePolicy, log, lock, shredNow, tamperDrill, toast, twoFactor } = useSession()
   const [confirm, setConfirm] = useState<null | 'drill' | 'shred'>(null)
   const set = (p: Partial<Policy>) => void savePolicy({ ...policy, ...p }).then(() => toast('good', 'Security policy saved.'))
   const recentTrips = log.filter((l) => l.level !== 'info').length
@@ -55,7 +55,7 @@ export function Security() {
             </div>
             <div>
               <span className="chip good"><span className="dot" /> All sensors armed</span>
-              <h2 style={{ fontSize: 26, marginTop: 12 }}>{sensors.length} sensors on watch</h2>
+              <h2 style={{ fontSize: 26, marginTop: 12 }}><Count v={sensors.length} /> sensors on watch</h2>
               <p className="muted" style={{ marginTop: 8 }}>
                 {recentTrips ? `${recentTrips} event${recentTrips > 1 ? 's' : ''} in your log need a look.` : 'Nothing suspicious so far.'} Keys are derived with PBKDF2 at{' '}
                 {PBKDF2_ITERATIONS.toLocaleString()} iterations and every record is sealed with AES-256-GCM.
@@ -82,6 +82,11 @@ export function Security() {
         </div>
 
         <div className="stack">
+          <div className="card rise" style={{ animationDelay: '0.1s' }}>
+            <div className="card-head"><h2>Two-factor sign-in</h2><span className={'chip ' + (twoFactor.enabled ? 'good' : 'warn')}><span className="dot" /> {twoFactor.enabled ? 'On' : 'Off'}</span></div>
+            <p className="muted" style={{ fontSize: 14 }}>{twoFactor.enabled ? 'A code from your authenticator app is required at every sign-in. Wrong codes count toward your shred limit.' : 'Turn it on so a stolen password alone can’t open your vault.'}</p>
+            <Link to="/app/profile/settings" className="btn btn-sm" style={{ marginTop: 12 }}><Icon name="shield" /> {twoFactor.enabled ? 'Manage' : 'Turn on'}</Link>
+          </div>
           <div className="card rise" style={{ animationDelay: '0.12s' }}>
             <div className="card-head"><h2>Policy</h2></div>
             <div className="stack" style={{ gap: 18 }}>

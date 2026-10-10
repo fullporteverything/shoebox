@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Icon } from '../components/icons.js'
 import { ReceiptDrawer } from '../components/ReceiptDrawer.js'
 import { PageTitle } from '../components/Shell.js'
-import { CatChip, money, paid } from '../components/ui.js'
+import { CatChip, Money, Paid } from '../components/ui.js'
 import { AnalyzeError, analyze, detectEngine } from '../lib/ai.js'
 import type { Engine } from '../lib/ai.js'
 import { randomId } from '../lib/crypto.js'
@@ -217,8 +217,8 @@ export function Inbox() {
                         <div className="row-sub"><CatChip id={rec.classification.category} small /></div>
                       </div>
                       <div className="row-amt">
-                        <span className="money">{paid(rec)}</span>
-                        <small>{money(rec.classification.deductible)} counts</small>
+                        <span className="money"><Paid r={rec} /></span>
+                        <small><Money v={rec.classification.deductible} /> counts</small>
                       </div>
                     </button>
                   )}
@@ -257,8 +257,8 @@ export function Inbox() {
                   </div>
                 </div>
                 <div className="row-amt">
-                  <span className="money">{paid(r)}</span>
-                  <small>{money(r.classification.deductible)}</small>
+                  <span className="money"><Paid r={r} /></span>
+                  <small><Money v={r.classification.deductible} /></small>
                 </div>
               </button>
             ))}

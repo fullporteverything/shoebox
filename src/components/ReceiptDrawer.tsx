@@ -5,7 +5,7 @@ import { categories, categoryById, groupLabels } from '../lib/tax/rules.js'
 import type { CategoryId } from '../lib/tax/rules.js'
 import type { Receipt } from '../lib/types.js'
 import { Icon } from './icons.js'
-import { CatChip, CountUp, Drawer, money } from './ui.js'
+import { CatChip, CountUp, Drawer, money, Money } from './ui.js'
 
 const sourceLabel = { ai: 'AI suggestion, checked by the rules', rules: 'Matched by the rules engine', you: 'Set by you' }
 
@@ -141,8 +141,8 @@ export function ReceiptDrawer({ receipt, onClose }: { receipt: Receipt; onClose:
           <dt>Date</dt><dd>{r.extraction.date || '—'}</dd>
           {(r.extraction.city || r.extraction.country) && <><dt>Where</dt><dd>{[r.extraction.city, r.extraction.country].filter(Boolean).join(', ')}</dd></>}
           <dt>Total</dt><dd className="money">{r.extraction.currency === 'USD' ? money(r.extraction.total) : `${r.extraction.total.toFixed(2)} ${r.extraction.currency}`}</dd>
-          {r.extraction.tax != null && <><dt>Tax</dt><dd className="money">{money(r.extraction.tax)}</dd></>}
-          {r.extraction.tip != null && r.extraction.tip > 0 && <><dt>Tip</dt><dd className="money">{money(r.extraction.tip)}</dd></>}
+          {r.extraction.tax != null && <><dt>Tax</dt><dd className="money"><Money v={r.extraction.tax} /></dd></>}
+          {r.extraction.tip != null && r.extraction.tip > 0 && <><dt>Tip</dt><dd className="money"><Money v={r.extraction.tip} /></dd></>}
           {r.extraction.paymentMethod && <><dt>Paid with</dt><dd>{r.extraction.paymentMethod}</dd></>}
           {r.extraction.formType && <><dt>Form</dt><dd>{r.extraction.formType}</dd></>}
           {r.extraction.notes && <><dt>Notes</dt><dd>{r.extraction.notes}</dd></>}
@@ -152,7 +152,7 @@ export function ReceiptDrawer({ receipt, onClose }: { receipt: Receipt; onClose:
             {r.extraction.lineItems.map((l, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '7px 0', borderBottom: i < r.extraction.lineItems.length - 1 ? '1px solid var(--glass-border)' : 0, fontSize: 13.5 }}>
                 <span>{l.description}</span>
-                <span className="money">{money(l.amount)}</span>
+                <span className="money"><Money v={l.amount} /></span>
               </div>
             ))}
           </div>

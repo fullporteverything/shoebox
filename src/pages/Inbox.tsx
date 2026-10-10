@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Icon } from '../components/icons.js'
 import { ReceiptDrawer } from '../components/ReceiptDrawer.js'
 import { PageTitle } from '../components/Shell.js'
-import { CatChip, money } from '../components/ui.js'
+import { CatChip, money, paid } from '../components/ui.js'
 import { AnalyzeError, analyze, detectEngine } from '../lib/ai.js'
 import type { Engine } from '../lib/ai.js'
 import { randomId } from '../lib/crypto.js'
@@ -28,7 +28,7 @@ type Item = {
 const blankExtraction = (merchant: string, total: number, date: string, notes: string, cat?: CategoryId): Extraction => ({
   documentType: 'receipt', merchant: merchant || 'Unknown merchant', date, total, tax: null, tip: null, currency: 'USD', paymentMethod: null,
   lineItems: [], formType: null, suggestedCategory: cat ?? keywordCategory(`${merchant} ${notes}`)?.id ?? ('nonsense' as CategoryId),
-  businessPurpose: notes, confidence: cat ? 1 : 0.6, notes: '',
+  businessPurpose: notes, confidence: cat ? 1 : 0.6, notes: '', city: null, country: null, usdTotal: null,
 })
 
 function ManualForm({ item, onSubmit, onCancel }: { item: Item; onSubmit: (ex: Extraction, cat?: CategoryId) => void; onCancel: () => void }) {
@@ -181,6 +181,9 @@ export function Inbox() {
           <button className="btn" onClick={async () => add((await makeSamples()).map((s) => ({ fileName: s.fileName, blob: s.blob, dataUrl: s.dataUrl, truth: s.truth })))}>
             <Icon name="sparkle" /> Try 8 sample receipts
           </button>
+          <button className="btn" onClick={async () => add((await makeSamples('creator')).map((s) => ({ fileName: s.fileName, blob: s.blob, dataUrl: s.dataUrl, truth: s.truth })))}>
+            <Icon name="camera" /> Creator trip example
+          </button>
         </div>
         <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => (onFiles(e.target.files), (e.target.value = ''))} />
         <input ref={camRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => (onFiles(e.target.files), (e.target.value = ''))} />
@@ -214,7 +217,7 @@ export function Inbox() {
                         <div className="row-sub"><CatChip id={rec.classification.category} small /></div>
                       </div>
                       <div className="row-amt">
-                        <span className="money">{money(rec.extraction.total)}</span>
+                        <span className="money">{paid(rec)}</span>
                         <small>{money(rec.classification.deductible)} counts</small>
                       </div>
                     </button>
@@ -254,7 +257,7 @@ export function Inbox() {
                   </div>
                 </div>
                 <div className="row-amt">
-                  <span className="money">{money(r.extraction.total)}</span>
+                  <span className="money">{paid(r)}</span>
                   <small>{money(r.classification.deductible)}</small>
                 </div>
               </button>

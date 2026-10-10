@@ -285,7 +285,7 @@ export async function shred(email: string, incident: Omit<Incident, 'destroyed'>
     'Encryption key',
     ...Object.entries(kinds)
       .filter(([k]) => k !== 'canary')
-      .map(([k, n]) => `${n} ${k === 'receipt' ? 'receipt' : k}${n > 1 ? 's' : ''}`),
+      .map(([k, n]) => `${n} ${({ receipt: 'receipt', income: 'income record', trip: 'trip log', log: 'security log', profile: 'profile' } as Record<string, string>)[k] ?? k}${n > 1 ? 's' : ''}`),
   ]
   const full: Incident = { ...incident, destroyed }
   acct.wrapped = null

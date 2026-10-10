@@ -2,11 +2,12 @@ import React, { useMemo, useState } from 'react'
 import { Icon } from '../components/icons.js'
 import { ReceiptDrawer } from '../components/ReceiptDrawer.js'
 import { PageTitle } from '../components/Shell.js'
-import { CatChip, CountUp, Donut, Link, money } from '../components/ui.js'
+import { CatChip, CountUp, Donut, Link, money, paid } from '../components/ui.js'
 import { useSession } from '../lib/session.js'
 import { categoryById, groupLabels } from '../lib/tax/rules.js'
 import type { CategoryId } from '../lib/tax/rules.js'
 import { stateByCode } from '../lib/tax/states.js'
+import { buildPicture } from '../lib/tax/advisor.js'
 import type { Receipt } from '../lib/types.js'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -48,7 +49,7 @@ function MonthBars({ receipts, year }: { receipts: Receipt[]; year: number }) {
 }
 
 export function Overview() {
-  const { profile, receipts } = useSession()
+  const { profile, receipts, incomes, tripLogs } = useSession()
   const [open, setOpen] = useState<Receipt | null>(null)
   const year = profile?.taxYear ?? new Date().getFullYear()
 
@@ -62,6 +63,7 @@ export function Overview() {
     return { inYear, deductible, business, cats, review: receipts.filter((r) => r.status === 'needs_review'), flagged: receipts.filter((r) => r.classification.flags.some((f) => f.level === 'warn')) }
   }, [receipts, year])
 
+  const pic = useMemo(() => (profile ? buildPicture(profile, receipts, incomes, tripLogs) : null), [profile, receipts, incomes, tripLogs])
   if (!profile) return null
   const st = stateByCode[profile.state]
   const firstName = profile.name.split(' ')[0]
@@ -92,11 +94,11 @@ export function Overview() {
           <div className="v"><CountUp value={stats.review.length} format={(n) => String(Math.round(n))} /></div>
           <div className="d">{stats.flagged.length} flagged for missing details</div>
         </div>
-        <div className="card kpi lift" style={{ ['--i' as string]: 3 }}>
-          <div className="k"><Icon name="shield" size={16} /> Vault</div>
-          <div className="v" style={{ fontSize: 24, color: 'var(--good)', paddingTop: 6 }}>Encrypted</div>
-          <div className="d">AES-256 · {receipts.length} sealed records</div>
-        </div>
+        <Link to="/app/savings" className="card kpi lift" style={{ ['--i' as string]: 3, color: 'inherit', textDecoration: 'none' }}>
+          <div className="k"><Icon name="scale" size={16} /> Estimated tax</div>
+          <div className="v">{pic?.est ? <CountUp value={pic.est.totalTax} format={(n) => money(n, false)} /> : '—'}</div>
+          <div className="d">{pic?.est ? `${pic.opportunities.length} ways to save · open the assistant` : `Estimates cover tax year 2026`}</div>
+        </Link>
       </div>
 
       <div className="split" style={{ marginTop: 16 }}>
@@ -136,7 +138,7 @@ export function Overview() {
                       <div className="row-title">{r.extraction.merchant}</div>
                       <div className="row-sub"><CatChip id={r.classification.category} small /></div>
                     </div>
-                    <div className="row-amt"><span className="money">{money(r.extraction.total)}</span></div>
+                    <div className="row-amt"><span className="money">{paid(r)}</span></div>
                   </button>
                 ))}
               </div>

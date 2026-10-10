@@ -20,7 +20,7 @@ export function ReceiptDrawer({ receipt, onClose }: { receipt: Receipt; onClose:
   const recompute = (patch: Partial<Receipt>, override?: CategoryId) => {
     const next = { ...r, ...patch }
     const keepOverride = override ?? (next.classification.source === 'you' ? next.classification.category : undefined)
-    next.classification = classify(next.extraction, profile, { override: keepOverride, businessPct: next.businessPct, source: r.classification.source === 'you' ? 'ai' : r.classification.source })
+    next.classification = classify(next.extraction, profile, { override: keepOverride, businessPct: next.businessPct, source: r.classification.source === 'you' ? 'ai' : r.classification.source, usdAmount: next.usdAmount })
     setR(next)
   }
 
@@ -69,7 +69,7 @@ export function ReceiptDrawer({ receipt, onClose }: { receipt: Receipt; onClose:
             <div className="big-amount" style={{ color: r.classification.deductible ? 'var(--gold-ink)' : 'var(--ink-3)' }}>
               <CountUp value={r.classification.deductible} />
             </div>
-            <div className="faint" style={{ fontSize: 13 }}>of <span className="money">{money(r.extraction.total)}</span> paid · {cat.form}</div>
+            <div className="faint" style={{ fontSize: 13 }}>of <span className="money">{r.extraction.currency === 'USD' ? money(r.extraction.total) : `${r.extraction.total.toFixed(2)} ${r.extraction.currency}`}</span> paid · {cat.form}</div>
           </div>
           <span className={'chip ' + (r.status === 'confirmed' ? 'good' : 'warn')}>{r.status === 'confirmed' ? 'Confirmed' : 'Needs review'}</span>
         </div>
@@ -89,6 +89,24 @@ export function ReceiptDrawer({ receipt, onClose }: { receipt: Receipt; onClose:
           ))}
         </select>
       </div>
+
+      {r.extraction.currency !== 'USD' && (
+        <div className="field">
+          <label htmlFor="rd-usd">US dollar amount charged ({r.extraction.total} {r.extraction.currency} on the receipt)</label>
+          <input
+            id="rd-usd"
+            className="input"
+            inputMode="decimal"
+            placeholder={r.extraction.usdTotal != null ? `Receipt shows $${r.extraction.usdTotal}` : 'From your card or bank statement'}
+            value={r.usdAmount ?? ''}
+            onChange={(e) => {
+              const v = e.target.value.trim()
+              recompute({ usdAmount: v === '' ? null : Math.max(0, parseFloat(v) || 0) })
+            }}
+          />
+          <span className="hint">The IRS needs amounts in US dollars. We use your statement amount, or the dollar amount printed on the receipt, and never a guessed rate.</span>
+        </div>
+      )}
 
       {isBusiness && (
         <div className="field">
@@ -121,7 +139,8 @@ export function ReceiptDrawer({ receipt, onClose }: { receipt: Receipt; onClose:
         <dl className="kv">
           <dt>Merchant</dt><dd>{r.extraction.merchant}</dd>
           <dt>Date</dt><dd>{r.extraction.date || '—'}</dd>
-          <dt>Total</dt><dd className="money">{money(r.extraction.total)}</dd>
+          {(r.extraction.city || r.extraction.country) && <><dt>Where</dt><dd>{[r.extraction.city, r.extraction.country].filter(Boolean).join(', ')}</dd></>}
+          <dt>Total</dt><dd className="money">{r.extraction.currency === 'USD' ? money(r.extraction.total) : `${r.extraction.total.toFixed(2)} ${r.extraction.currency}`}</dd>
           {r.extraction.tax != null && <><dt>Tax</dt><dd className="money">{money(r.extraction.tax)}</dd></>}
           {r.extraction.tip != null && r.extraction.tip > 0 && <><dt>Tip</dt><dd className="money">{money(r.extraction.tip)}</dd></>}
           {r.extraction.paymentMethod && <><dt>Paid with</dt><dd>{r.extraction.paymentMethod}</dd></>}

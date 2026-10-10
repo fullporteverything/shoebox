@@ -6,7 +6,7 @@ import type { Extraction } from '../types.js'
 const base: Extraction = {
   documentType: 'receipt', merchant: '', date: '2026-03-02', total: 100, tax: null, tip: null, currency: 'USD',
   paymentMethod: null, lineItems: [], formType: null, suggestedCategory: 'supplies', businessPurpose: 'client work',
-  confidence: 0.9, notes: '',
+  confidence: 0.9, notes: '', city: null, country: null, usdTotal: null,
 }
 const se = { state: 'TX', workType: 'self_employed' as const }
 
@@ -57,4 +57,11 @@ test('state notes follow the profile state', () => {
 test('keyword matcher', () => {
   assert.equal(keywordCategory('Delta Air Lines boarding')?.id, 'travel')
   assert.equal(keywordCategory('zzz'), null)
+})
+
+test('foreign currency needs a real USD amount', () => {
+  const eur = { ...base, currency: 'EUR', total: 90, suggestedCategory: 'meals' as const }
+  assert.equal(classify(eur, se).deductible, 0)
+  assert.equal(classify({ ...eur, usdTotal: 98 }, se).deductible, 49)
+  assert.equal(classify(eur, se, { usdAmount: 100 }).deductible, 50)
 })

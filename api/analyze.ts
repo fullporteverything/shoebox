@@ -26,6 +26,9 @@ const ExtractionSchema = z.object({
   businessPurpose: z.string(),
   confidence: z.number(),
   notes: z.string(),
+  city: z.string().nullable(),
+  country: z.string().nullable(),
+  usdTotal: z.number().nullable(),
 })
 
 // Best-effort per-instance rate limit. Put a shared limiter (e.g. Vercel KV or

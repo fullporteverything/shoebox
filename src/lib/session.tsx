@@ -5,7 +5,8 @@ import type { Incident, Policy, Session } from './vault.js'
 import { sensors, tabChannel, watchIdle, watchInjection } from './sentinel.js'
 import type { SensorId, Severity } from './sentinel.js'
 import { classify } from './tax/classify.js'
-import type { Profile, Receipt } from './types.js'
+import type { IncomeEntry, Plan, Profile, Receipt, TripLog } from './types.js'
+import { emptyPlan } from './types.js'
 import { TERMS_VERSION } from '../legal/content.js'
 
 export type LogEntry = { at: number; level: 'info' | 'alert' | 'lock' | 'shred'; sensor?: SensorId; text: string }
@@ -18,6 +19,8 @@ type Ctx = {
   email: string
   profile: Profile | null
   receipts: Receipt[]
+  incomes: IncomeEntry[]
+  tripLogs: Record<string, TripLog>
   log: LogEntry[]
   policy: Policy
   incident: Incident | null
@@ -31,6 +34,10 @@ type Ctx = {
   saveReceipt: (r: Receipt) => Promise<void>
   deleteReceipt: (id: string) => Promise<void>
   saveProfile: (p: Profile) => Promise<void>
+  savePlan: (patch: Partial<Plan>) => Promise<void>
+  saveIncome: (i: IncomeEntry) => Promise<void>
+  deleteIncome: (id: string) => Promise<void>
+  saveTripLog: (t: TripLog) => Promise<void>
   savePolicy: (p: Policy) => Promise<void>
   changePassword: (current: string, next: string) => Promise<void>
   shredNow: (why: string) => Promise<void>
@@ -63,6 +70,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [email, setEmail] = useState(readLastEmail)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [receipts, setReceipts] = useState<Receipt[]>([])
+  const [incomes, setIncomes] = useState<IncomeEntry[]>([])
+  const [tripLogs, setTripLogs] = useState<Record<string, TripLog>>({})
   const [log, setLog] = useState<LogEntry[]>([])
   const [policy, setPolicyState] = useState<Policy>(vault.defaultPolicy)
   const [incident, setIncident] = useState<Incident | null>(null)
@@ -103,6 +112,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     sessionRef.current = null
     setProfile(null)
     setReceipts([])
+    setIncomes([])
+    setTripLogs({})
     logRef.current = []
     setLog([])
   }
@@ -154,11 +165,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     let p: Profile | null = null
     const rs: Receipt[] = []
     let lg: LogEntry[] = []
+    const inc: IncomeEntry[] = []
+    const trips: Record<string, TripLog> = {}
     for (const r of records) {
       if (r.kind === 'profile') p = r.value as Profile
       else if (r.kind === 'receipt') rs.push(r.value as Receipt)
       else if (r.kind === 'log') lg = r.value as LogEntry[]
+      else if (r.kind === 'income') inc.push(r.value as IncomeEntry)
+      else if (r.kind === 'trip') {
+        const t = r.value as TripLog
+        trips[t.key] = t
+      }
     }
+    setIncomes(inc.sort((a, b) => b.date.localeCompare(a.date)))
+    setTripLogs(trips)
     rs.sort((a, b) => b.createdAt - a.createdAt)
     setProfile(p)
     setReceipts(rs)
@@ -274,7 +294,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const updated = receipts.map((r) =>
         r.classification.source === 'you'
           ? r
-          : { ...r, classification: classify(r.extraction, p, { businessPct: r.businessPct, source: r.classification.source }) },
+          : { ...r, classification: classify(r.extraction, p, { businessPct: r.businessPct, source: r.classification.source, usdAmount: r.usdAmount }) },
       )
       for (const r of updated) await write((s) => vault.put(s, r.id, 'receipt', r))
       setReceipts(updated)
@@ -282,6 +302,35 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     },
     [receipts],
   )
+
+  // Plan answers don't change how receipts are categorized, so no re-sort.
+  // Merges into the latest saved answers, so quick successive edits don't
+  // overwrite each other.
+  const profileRef = useRef<Profile | null>(null)
+  profileRef.current = profile
+  const savePlan = useCallback(async (patch: Partial<Plan>) => {
+    const cur = profileRef.current
+    if (!cur) return
+    const p: Profile = { ...cur, plan: { ...emptyPlan, ...(cur.plan ?? {}), ...patch } }
+    profileRef.current = p
+    setProfile(p)
+    await write((s) => vault.put(s, 'profile', 'profile', p))
+  }, [])
+
+  const saveIncome = useCallback(async (i: IncomeEntry) => {
+    await write((s) => vault.put(s, 'inc:' + i.id, 'income', i))
+    setIncomes((xs) => [i, ...xs.filter((x) => x.id !== i.id)].sort((a, b) => b.date.localeCompare(a.date)))
+  }, [])
+
+  const deleteIncome = useCallback(async (id: string) => {
+    await write((s) => vault.remove(s, 'inc:' + id))
+    setIncomes((xs) => xs.filter((x) => x.id !== id))
+  }, [])
+
+  const saveTripLog = useCallback(async (t: TripLog) => {
+    await write((s) => vault.put(s, 'trip:' + t.key, 'trip', t))
+    setTripLogs((m) => ({ ...m, [t.key]: t }))
+  }, [])
 
   const savePolicy = useCallback(
     async (p: Policy) => {
@@ -385,11 +434,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Ctx>(
     () => ({
-      phase, email, profile, receipts, log, policy, incident, toasts, toast, dismissToast, signUp, signIn, signOut, lock,
-      saveReceipt, deleteReceipt, saveProfile, savePolicy, changePassword, shredNow, tamperDrill, deleteAccount, acknowledgeIncident,
+      phase, email, profile, receipts, incomes, tripLogs, log, policy, incident, toasts, toast, dismissToast, signUp, signIn, signOut, lock,
+      saveReceipt, deleteReceipt, saveProfile, savePlan, saveIncome, deleteIncome, saveTripLog, savePolicy, changePassword, shredNow, tamperDrill,
+      deleteAccount, acknowledgeIncident,
     }),
-    [phase, email, profile, receipts, log, policy, incident, toasts, toast, dismissToast, signUp, signIn, signOut, lock,
-      saveReceipt, deleteReceipt, saveProfile, savePolicy, changePassword, shredNow, tamperDrill, deleteAccount, acknowledgeIncident],
+    [phase, email, profile, receipts, incomes, tripLogs, log, policy, incident, toasts, toast, dismissToast, signUp, signIn, signOut, lock,
+      saveReceipt, deleteReceipt, saveProfile, savePlan, saveIncome, deleteIncome, saveTripLog, savePolicy, changePassword, shredNow, tamperDrill,
+      deleteAccount, acknowledgeIncident],
   )
   return <SessionCtx.Provider value={value}>{children}</SessionCtx.Provider>
 }

@@ -5,9 +5,18 @@ import { categoryById } from '../lib/tax/rules.js'
 import type { CategoryId } from '../lib/tax/rules.js'
 import { useSession } from '../lib/session.js'
 import { Icon } from './icons.js'
+import { usdOf } from '../lib/tax/advisor.js'
+import type { Receipt } from '../lib/types.js'
 
 export const money = (n: number, cents = true) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 })
+
+// What a receipt cost in US dollars, or its original currency if no USD figure exists yet.
+export const paid = (r: Receipt) => {
+  if (r.extraction.currency === 'USD') return money(r.extraction.total)
+  const usd = usdOf(r)
+  return usd != null ? money(usd) : `${r.extraction.total.toFixed(2)} ${r.extraction.currency}`
+}
 
 export function Link({ to, children, className, ...rest }: { to: string; children: ReactNode; className?: string } & Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'>) {
   return (

@@ -168,6 +168,9 @@ Shoebox organizes records and suggests categories using general summaries of IRS
 - Rules change. The rules in this version were last reviewed in [October 2026]. State conformity with federal law varies and changes each year.
 - Deductible amounts shown are before overall limits like the SALT cap, AGI floors, the standard deduction, and self-employment tax effects.
 
+## Estimates and savings suggestions
+The tax estimate is a projection from the documents and answers you give us, using published figures for the tax year. It leaves out many things a real return includes, and states with graduated rates aren’t estimated at all. Savings suggestions appear only when your data meets a rule's published conditions, but whether a strategy suits you depends on facts we can’t see. The assistant is told to say when it isn’t sure rather than guess, but it can still be wrong. Never claim an expense without a real business purpose and records made at the time.
+
 ## Your responsibility
 Check every item and keep your original records. Ask a qualified professional about your situation before filing.
 `,

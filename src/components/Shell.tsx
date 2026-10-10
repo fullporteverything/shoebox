@@ -7,6 +7,7 @@ import { Avatar, Link } from './ui.js'
 
 const items: { to: string; label: string; icon: IconName }[] = [
   { to: '/app', label: 'Overview', icon: 'overview' },
+  { to: '/app/savings', label: 'Savings', icon: 'sparkle' },
   { to: '/app/inbox', label: 'Inbox', icon: 'inbox' },
   { to: '/app/receipts', label: 'Receipts', icon: 'receipts' },
   { to: '/app/tax', label: 'Tax map', icon: 'map' },

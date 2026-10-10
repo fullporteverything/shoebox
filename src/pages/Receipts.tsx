@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { Icon } from '../components/icons.js'
 import { ReceiptDrawer } from '../components/ReceiptDrawer.js'
 import { PageTitle } from '../components/Shell.js'
-import { CatChip, Link, Seg, money } from '../components/ui.js'
+import { CatChip, Link, Seg, money, paid } from '../components/ui.js'
 import { useSession } from '../lib/session.js'
 import { categoryById } from '../lib/tax/rules.js'
 import type { Group } from '../lib/tax/rules.js'
@@ -62,7 +62,7 @@ export function Receipts() {
                   </div>
                 </div>
                 <div className="row-amt">
-                  <span className="money">{money(r.extraction.total)}</span>
+                  <span className="money">{paid(r)}</span>
                   <small>{money(r.classification.deductible)}</small>
                 </div>
               </button>

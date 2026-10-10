@@ -3,7 +3,7 @@
 //   server  - the deployed app's /api/analyze function (needs ANTHROPIC_API_KEY)
 //   manual  - nothing available: the person types the key fields, rules still apply
 
-import { extractionPrompt, normalizeExtraction } from './prompt.js'
+import { ASSISTANT_RULES, extractionPrompt, normalizeExtraction } from './prompt.js'
 import type { Extraction, Profile } from './types.js'
 
 export type EngineKind = 'claude' | 'server' | 'manual'
@@ -84,4 +84,34 @@ export async function analyze(image: Blob, profile: Profile, signal?: AbortSigna
     return normalizeExtraction(j.extraction)
   }
   throw new AnalyzeError('manual', 'AI reading isn’t available. Enter the details by hand.')
+}
+
+export type Turn = { role: 'user' | 'assistant'; content: string }
+
+// Ask the assistant a question about the person's own data.
+export async function ask(turns: Turn[], context: string, onText: (text: string) => void, signal?: AbortSignal): Promise<string> {
+  const engine = await detectEngine()
+  const lead = `${ASSISTANT_RULES}\n\nTheir data:\n${context}`
+  if (engine.kind === 'claude') {
+    const sample = (await getSample())!
+    try {
+      const { text } = await sample([{ role: 'user', content: lead }, ...turns.slice(-10)] as never, {
+        cache: false,
+        signal,
+        onText: ({ text }: { text: string }) => onText(text),
+      } as never)
+      return text
+    } catch (e) {
+      const code = (e as { code?: string })?.code ?? 'upstream_error'
+      throw new AnalyzeError(code, sampleErrorCopy[code] ?? 'Claude couldn’t answer right now. Try again.')
+    }
+  }
+  if (engine.kind === 'server') {
+    const r = await fetch('/api/ask', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ context, turns: turns.slice(-10) }), signal })
+    const j = await r.json().catch(() => null)
+    if (!r.ok) throw new AnalyzeError(j?.error ?? 'server_error', j?.message ?? 'The assistant couldn’t answer. Try again.')
+    onText(j.text)
+    return j.text
+  }
+  throw new AnalyzeError('manual', 'The assistant needs AI, which isn’t available here.')
 }

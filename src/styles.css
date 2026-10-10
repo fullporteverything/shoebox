@@ -629,3 +629,40 @@ p { margin: 0; }
 
 .radar-card { display: grid; grid-template-columns: minmax(0, 240px) minmax(0, 1fr); gap: 24px; align-items: center; }
 @media (max-width: 620px) { .radar-card { grid-template-columns: 1fr; text-align: center; } }
+
+/* ---------- savings assistant ---------- */
+.opp { padding: 0; overflow: hidden; }
+.opp-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; width: 100%; padding: 18px 20px; border: 0; background: none; text-align: left; cursor: pointer; color: var(--ink); align-items: start; }
+.opp-head h3 { font-size: 17.5px; margin: 10px 0 6px; }
+.opp-head p { font-size: 14px; }
+.opp-save { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; color: var(--ink-3); }
+.opp-save b { font-size: 22px; color: var(--good); font-weight: 650; }
+.opp-body { padding: 0 20px 18px; display: flex; flex-direction: column; gap: 14px; border-top: 1px solid var(--glass-border); padding-top: 14px; }
+.steps-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; color: var(--ink-2); font-size: 14px; }
+.steps-list li::marker { color: var(--gold-ink); font-family: var(--font-mono); }
+.opp-q { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; padding: 14px; border-radius: 16px; background: color-mix(in srgb, var(--bg) 40%, transparent); }
+.days { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.day { position: relative; border-radius: 14px; padding: 10px; text-align: left; cursor: pointer; border: 1px solid var(--glass-border); background: color-mix(in srgb, var(--bg) 45%, transparent); color: var(--ink); display: flex; flex-direction: column; gap: 2px; transition: transform 0.3s var(--ease-spring), background 0.25s, border-color 0.25s; }
+.day:hover { transform: translateY(-2px); }
+.day:active { transform: scale(0.96); }
+.day .dnum { font-weight: 650; font-size: 13.5px; }
+.day .dkind { font-size: 11.5px; color: var(--ink-3); }
+.day.business { background: var(--good-soft); border-color: color-mix(in srgb, var(--good) 40%, transparent); }
+.day.business .dkind { color: var(--good); }
+.day.travel { background: var(--sea-soft); border-color: color-mix(in srgb, var(--sea) 40%, transparent); }
+.day.travel .dkind { color: var(--sea); }
+.day.personal { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+.day.personal .dkind { color: var(--warn); }
+.day .dev { position: absolute; top: 8px; right: 8px; font-size: 11px; display: inline-flex; gap: 3px; align-items: center; color: var(--gold-ink); }
+.evidence { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 2px; }
+.evidence figure { margin: 0; position: relative; flex: none; width: 92px; height: 70px; border-radius: 12px; overflow: hidden; border: 1px solid var(--glass-border); animation: pop 0.4s var(--ease-spring) both; }
+.evidence img { width: 100%; height: 100%; object-fit: cover; }
+.evidence .play { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 18px; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6); }
+.evidence figcaption { position: absolute; left: 4px; bottom: 4px; font-size: 10.5px; padding: 1px 6px; border-radius: 6px; background: rgba(0, 0, 0, 0.55); color: #fff; font-family: var(--font-mono); }
+.chat { display: flex; flex-direction: column; gap: 10px; }
+.bubble { padding: 11px 14px; border-radius: 16px; font-size: 14px; white-space: pre-wrap; max-width: 92%; animation: rise 0.4s var(--ease-out) both; }
+.bubble.user { align-self: flex-end; background: linear-gradient(180deg, var(--gold-2), var(--gold)); color: var(--on-gold); border-bottom-right-radius: 5px; }
+.bubble.assistant { align-self: flex-start; background: color-mix(in srgb, var(--bg) 50%, transparent); border: 1px solid var(--glass-border); border-bottom-left-radius: 5px; }
+.fab { position: fixed; right: 22px; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); z-index: 40; border-radius: 99px; padding: 13px 20px; animation: pop 0.6s var(--ease-spring) both; }
+@media (max-width: 760px) { .fab { bottom: calc(100px + env(safe-area-inset-bottom, 0px)); right: 16px; } }
+@media (max-width: 760px) { .nav a { font-size: 9.5px; padding: 8px 2px; } .nav svg { width: 18px; height: 18px; } }

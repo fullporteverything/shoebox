@@ -28,8 +28,9 @@ export function PublicFrame({ children }: { children: ReactNode }) {
           )}
         </nav>
       </header>
-      {children}
-      <footer className="foot">
+      <div className="pub-page">
+        {children}
+        <footer className="foot">
         <div className="wrap">
           <span>© {new Date().getFullYear()} Shoebox. Organizes records, doesn’t give tax advice. Rules reviewed {RULES_REVIEWED}.</span>
           <nav aria-label="Legal">
@@ -37,8 +38,9 @@ export function PublicFrame({ children }: { children: ReactNode }) {
               <Link key={d.slug} to={`/legal/${d.slug}`}>{d.short}</Link>
             ))}
           </nav>
-        </div>
-      </footer>
+          </div>
+        </footer>
+      </div>
     </div>
   )
 }

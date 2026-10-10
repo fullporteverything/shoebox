@@ -154,7 +154,7 @@ p { margin: 0; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ---------- atmosphere ---------- */
-.aurora { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; view-transition-name: aurora; }
+.aurora { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
 .aurora i { position: absolute; border-radius: 50%; filter: blur(70px); will-change: transform; }
 .aurora i:nth-child(1) { width: 60vmax; height: 60vmax; left: -18vmax; top: -22vmax; background: var(--aurora-3); animation: drift1 28s ease-in-out infinite alternate; }
 .aurora i:nth-child(2) { width: 46vmax; height: 46vmax; right: -14vmax; top: 10vmax; background: var(--aurora-1); animation: drift2 34s ease-in-out infinite alternate; }
@@ -275,11 +275,17 @@ p { margin: 0; }
 .spin { animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-::view-transition-old(root) { animation: vt-out 0.26s ease both; }
-::view-transition-new(root) { animation: vt-in 0.5s var(--ease-out) both; }
-::view-transition-group(dock), ::view-transition-group(aurora) { animation: none; }
-@keyframes vt-out { to { opacity: 0; transform: translateY(-8px) scale(0.992); filter: blur(5px); } }
-@keyframes vt-in { from { opacity: 0; transform: translateY(14px) scale(1.004); filter: blur(8px); } }
+/* Page transitions animate only the page content ("page"). The background
+   and the dock stay put: root swaps instantly, so nothing is ever drawn over
+   the page and the aurora's blend mode never drops out mid-transition. */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+::view-transition-group(page), ::view-transition-group(dock) { animation: none; }
+::view-transition-old(page), ::view-transition-new(page) { height: auto; object-fit: none; object-position: top center; }
+::view-transition-old(page) { animation: vt-out 0.2s ease both; }
+::view-transition-new(page) { animation: vt-in 0.45s var(--ease-out) both; }
+.main, .pub-page { view-transition-name: page; }
+@keyframes vt-out { to { opacity: 0; transform: translateY(-6px); filter: blur(4px); } }
+@keyframes vt-in { from { opacity: 0; transform: translateY(12px); filter: blur(6px); } }
 
 /* ---------- app shell ---------- */
 .app { position: relative; z-index: 1; display: grid; grid-template-columns: var(--dock-w) minmax(0, 1fr); min-height: 100%; }
@@ -456,6 +462,7 @@ p { margin: 0; }
 
 /* ---------- public pages ---------- */
 .public { position: relative; z-index: 1; min-height: 100%; display: flex; flex-direction: column; }
+.pub-page { flex: 1; display: flex; flex-direction: column; }
 .pub-nav {
   position: sticky; top: calc(12px + env(safe-area-inset-top, 0px)); z-index: 20; margin: 12px auto 0; width: min(1120px, calc(100% - 32px));
   display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 16px; border-radius: 20px;

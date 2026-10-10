@@ -13,6 +13,7 @@ import { classify, keywordCategory } from '../lib/tax/classify.js'
 import { categories } from '../lib/tax/rules.js'
 import type { CategoryId } from '../lib/tax/rules.js'
 import type { Extraction, Receipt } from '../lib/types.js'
+import { Select } from '../components/Select.js'
 
 type Item = {
   key: string
@@ -54,10 +55,8 @@ function ManualForm({ item, onSubmit, onCancel }: { item: Item; onSubmit: (ex: E
       </div>
       <div className="grid-2">
         <input aria-label="Date" id={`d-${id}`} className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        <select aria-label="Category" id={`c-${id}`} className="select" value={cat} onChange={(e) => setCat(e.target.value as CategoryId)}>
-          <option value="">Let the rules decide</option>
-          {categories.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-        </select>
+        <Select aria-label="Category" id={`c-${id}`} value={cat} onChange={setCat}
+          options={[{ value: '' as '' | CategoryId, label: 'Let the rules decide' }, ...categories.map((c) => ({ value: c.id as '' | CategoryId, label: c.label }))]} />
       </div>
       <input aria-label="What it was for" id={`n-${id}`} className="input" placeholder="What it was for (helps the rules)" value={notes} onChange={(e) => setNotes(e.target.value)} />
       <div style={{ display: 'flex', gap: 8 }}>

@@ -685,3 +685,68 @@ p { margin: 0; }
 .code-input::placeholder { letter-spacing: 0.35em; color: var(--ink-3); opacity: 0.5; }
 .recovery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 14px; border-radius: 16px; background: color-mix(in srgb, var(--bg) 55%, transparent); border: 1px dashed color-mix(in srgb, var(--gold) 40%, var(--glass-border)); user-select: all; }
 .recovery code { font-family: var(--font-mono); font-size: 14.5px; text-align: center; padding: 6px; border-radius: 8px; background: var(--glass); animation: rise 0.4s var(--ease-out) both; }
+
+/* ---------- themed controls ---------- */
+.select-btn {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left; cursor: pointer;
+  padding: 11px 13px; border-radius: 12px; background: color-mix(in srgb, var(--bg) 55%, transparent);
+  border: 1px solid var(--glass-border); color: var(--ink); font: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.select-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.select-btn:hover { border-color: color-mix(in srgb, var(--ink) 20%, transparent); }
+.select-btn:focus-visible, .select-btn.open { outline: none; border-color: color-mix(in srgb, var(--gold) 70%, transparent); box-shadow: 0 0 0 4px var(--gold-soft); }
+.select-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.select-chev { width: 17px; height: 17px; flex: none; color: var(--ink-3); transition: transform 0.35s var(--ease-spring), color 0.2s; }
+.select-btn.open .select-chev { transform: rotate(180deg); color: var(--gold-ink); }
+.select-pop {
+  position: fixed; z-index: 90; overflow-y: auto; padding: 6px; border-radius: 16px;
+  background: color-mix(in srgb, var(--glass-solid) 96%, transparent); box-shadow: inset 0 1px 0 var(--glass-hi), var(--shadow-lg);
+  border: 1px solid color-mix(in srgb, var(--gold) 18%, var(--glass-border));
+  backdrop-filter: blur(24px) saturate(1.3); -webkit-backdrop-filter: blur(24px) saturate(1.3);
+  transform-origin: top center; animation: popIn 0.22s var(--ease-out) both; overscroll-behavior: contain;
+  scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--ink) 25%, transparent) transparent;
+}
+.select-pop.up { transform-origin: bottom center; }
+@keyframes popIn { from { opacity: 0; transform: translateY(-6px) scale(0.97); } }
+.select-pop.up { animation-name: popInUp; }
+@keyframes popInUp { from { opacity: 0; transform: translateY(6px) scale(0.97); } }
+.select-group { padding: 10px 10px 4px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); font-weight: 650; }
+.select-opt { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 10px; border-radius: 10px; cursor: pointer; font-size: 14.5px; color: var(--ink-2); transition: background 0.12s, color 0.12s; }
+.select-opt small { display: block; font-size: 12px; color: var(--ink-3); }
+.select-opt.active { background: var(--gold-soft); color: var(--ink); }
+.select-opt.chosen { color: var(--gold-ink); font-weight: 600; }
+.select-tick { width: 16px; height: 16px; flex: none; color: var(--gold-ink); }
+
+/* checkboxes */
+.check input[type='checkbox'], input[type='checkbox'].cb {
+  appearance: none; -webkit-appearance: none; width: 20px; height: 20px; margin: 1px 0 0; flex: none; cursor: pointer;
+  border-radius: 7px; border: 1.5px solid color-mix(in srgb, var(--ink) 30%, transparent); background: color-mix(in srgb, var(--bg) 55%, transparent);
+  display: grid; place-items: center; transition: background 0.2s, border-color 0.2s, transform 0.25s var(--ease-spring), box-shadow 0.2s;
+}
+.check input[type='checkbox']::after {
+  content: ''; width: 11px; height: 6px; border-left: 2.5px solid var(--on-gold); border-bottom: 2.5px solid var(--on-gold);
+  transform: translateY(-1px) rotate(-45deg) scale(0); transition: transform 0.3s var(--ease-spring);
+}
+.check input[type='checkbox']:checked { background: linear-gradient(180deg, var(--gold-2), var(--gold)); border-color: transparent; box-shadow: var(--shadow-gold); }
+.check input[type='checkbox']:checked::after { transform: translateY(-1px) rotate(-45deg) scale(1); }
+.check input[type='checkbox']:active { transform: scale(0.9); }
+.check input[type='checkbox']:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--gold-soft); }
+.check:hover input[type='checkbox']:not(:checked) { border-color: var(--gold); }
+
+/* range slider */
+input[type='range'] { -webkit-appearance: none; appearance: none; width: 100%; height: 26px; background: transparent; cursor: pointer; }
+input[type='range']::-webkit-slider-runnable-track { height: 8px; border-radius: 99px; background: linear-gradient(90deg, var(--sea), var(--gold)) 0 / var(--fill, 100%) 100% no-repeat, color-mix(in srgb, var(--ink) 12%, transparent); }
+input[type='range']::-moz-range-track { height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--ink) 12%, transparent); }
+input[type='range']::-moz-range-progress { height: 8px; border-radius: 99px; background: linear-gradient(90deg, var(--sea), var(--gold)); }
+input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -7px; border-radius: 50%; background: #fff; border: 3px solid var(--gold); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35); transition: transform 0.25s var(--ease-spring); }
+input[type='range']::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 3px solid var(--gold); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35); }
+input[type='range']:active::-webkit-slider-thumb { transform: scale(1.18); }
+input[type='range']:focus-visible { outline: none; }
+input[type='range']:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 5px var(--gold-soft); }
+
+/* date fields: the calendar popup follows color-scheme; tint the icon */
+input[type='date'].input { color-scheme: inherit; }
+input[type='date']::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.7; filter: invert(0.8) sepia(1) saturate(3) hue-rotate(5deg); }
+:root[data-theme='light'] input[type='date']::-webkit-calendar-picker-indicator { filter: none; }
+@media (prefers-color-scheme: light) { :root:not([data-theme='dark']) input[type='date']::-webkit-calendar-picker-indicator { filter: none; } }

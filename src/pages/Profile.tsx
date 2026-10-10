@@ -9,6 +9,7 @@ import { passwordStrength } from '../lib/crypto.js'
 import { useSession } from '../lib/session.js'
 import { states } from '../lib/tax/states.js'
 import type { FilingStatus, Profile as P, WorkType } from '../lib/types.js'
+import { Select } from '../components/Select.js'
 
 function TwoFactorCard() {
   const { twoFactor, disableTwoFactor, regenerateRecovery, toast } = useSession()
@@ -128,9 +129,7 @@ export function Profile({ tab }: { tab: 'profile' | 'settings' }) {
                 </div>
                 <div className="field">
                   <label htmlFor="pf-state">State</label>
-                  <select id="pf-state" className="select" value={p.state} onChange={(e) => setP({ ...p, state: e.target.value })}>
-                    {states.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
-                  </select>
+                  <Select id="pf-state" value={p.state} onChange={(v) => setP({ ...p, state: v })} options={states.map((s) => ({ value: s.code, label: s.name }))} />
                 </div>
               </div>
               <div className="field">
@@ -140,18 +139,11 @@ export function Profile({ tab }: { tab: 'profile' | 'settings' }) {
               <div className="grid-2">
                 <div className="field">
                   <label htmlFor="pf-filing">Filing status</label>
-                  <select id="pf-filing" className="select" value={p.filingStatus} onChange={(e) => setP({ ...p, filingStatus: e.target.value as FilingStatus })}>
-                    <option value="single">Single</option>
-                    <option value="married_joint">Married filing jointly</option>
-                    <option value="married_separate">Married filing separately</option>
-                    <option value="head_of_household">Head of household</option>
-                  </select>
+                  <Select id="pf-filing" value={p.filingStatus} onChange={(v) => setP({ ...p, filingStatus: v })} options={[{ value: 'single', label: 'Single' }, { value: 'married_joint', label: 'Married filing jointly' }, { value: 'married_separate', label: 'Married filing separately' }, { value: 'head_of_household', label: 'Head of household' }] as { value: FilingStatus; label: string }[]} />
                 </div>
                 <div className="field">
                   <label htmlFor="pf-year">Tax year</label>
-                  <select id="pf-year" className="select" value={p.taxYear} onChange={(e) => setP({ ...p, taxYear: Number(e.target.value) })}>
-                    {[0, 1, 2].map((d) => new Date().getFullYear() - d).map((y) => <option key={y} value={y}>{y}</option>)}
-                  </select>
+                  <Select id="pf-year" value={p.taxYear} onChange={(v) => setP({ ...p, taxYear: v })} options={[0, 1, 2].map((d) => new Date().getFullYear() - d).map((y) => ({ value: y, label: String(y), hint: y === 2026 ? 'Estimates available' : undefined }))} />
                 </div>
               </div>
               <div className="field">

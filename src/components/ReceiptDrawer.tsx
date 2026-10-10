@@ -6,6 +6,7 @@ import type { CategoryId } from '../lib/tax/rules.js'
 import type { Receipt } from '../lib/types.js'
 import { Icon } from './icons.js'
 import { CatChip, CountUp, Drawer, money, Money } from './ui.js'
+import { Select } from './Select.js'
 
 const sourceLabel = { ai: 'AI suggestion, checked by the rules', rules: 'Matched by the rules engine', you: 'Set by you' }
 
@@ -81,13 +82,8 @@ export function ReceiptDrawer({ receipt, onClose }: { receipt: Receipt; onClose:
 
       <div className="field">
         <label htmlFor="rd-cat">Category</label>
-        <select id="rd-cat" className="select" value={r.classification.category} onChange={(e) => recompute({}, e.target.value as CategoryId)}>
-          {(Object.keys(groupLabels) as (keyof typeof groupLabels)[]).map((g) => (
-            <optgroup key={g} label={groupLabels[g]}>
-              {categories.filter((c) => c.group === g).map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-            </optgroup>
-          ))}
-        </select>
+        <Select id="rd-cat" value={r.classification.category} onChange={(v) => recompute({}, v)}
+          options={categories.map((c) => ({ value: c.id, label: c.label, group: groupLabels[c.group] })).sort((a, b) => Object.values(groupLabels).indexOf(a.group) - Object.values(groupLabels).indexOf(b.group))} />
       </div>
 
       {r.extraction.currency !== 'USD' && (
@@ -111,7 +107,7 @@ export function ReceiptDrawer({ receipt, onClose }: { receipt: Receipt; onClose:
       {isBusiness && (
         <div className="field">
           <label htmlFor="rd-pct">Business use: {r.businessPct}%</label>
-          <input id="rd-pct" type="range" min={0} max={100} step={5} value={r.businessPct} onChange={(e) => recompute({ businessPct: Number(e.target.value) })} style={{ accentColor: 'var(--gold)' }} />
+          <input id="rd-pct" type="range" min={0} max={100} step={5} value={r.businessPct} onChange={(e) => recompute({ businessPct: Number(e.target.value) })} style={{ ['--fill' as string]: `${r.businessPct}%` }} />
           <span className="hint">For things you also use personally, such as a phone, car or internet, count only the business share.</span>
         </div>
       )}

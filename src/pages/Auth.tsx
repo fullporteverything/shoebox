@@ -8,6 +8,7 @@ import { states } from '../lib/tax/states.js'
 import type { FilingStatus, Profile, WorkType } from '../lib/types.js'
 import { PublicFrame } from './Public.js'
 import { CodeInput, TwoFactorSetup } from '../components/TwoFactorSetup.js'
+import { Select } from '../components/Select.js'
 
 function PasswordInput({ id, value, onChange, autoComplete, invalid }: { id: string; value: string; onChange: (v: string) => void; autoComplete: string; invalid?: boolean }) {
   const [show, setShow] = useState(false)
@@ -233,9 +234,7 @@ export function SignUp() {
                 </div>
                 <div className="field">
                   <label htmlFor="su-state">State you file in</label>
-                  <select id="su-state" className="select" value={state} onChange={(e) => setState(e.target.value)}>
-                    {states.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
-                  </select>
+                  <Select id="su-state" value={state} onChange={setState} options={states.map((s) => ({ value: s.code, label: s.name }))} />
                 </div>
               </div>
               <div className="field">
@@ -246,12 +245,7 @@ export function SignUp() {
               <div className="grid-2">
                 <div className="field">
                   <label htmlFor="su-filing">Filing status</label>
-                  <select id="su-filing" className="select" value={filing} onChange={(e) => setFiling(e.target.value as FilingStatus)}>
-                    <option value="single">Single</option>
-                    <option value="married_joint">Married filing jointly</option>
-                    <option value="married_separate">Married filing separately</option>
-                    <option value="head_of_household">Head of household</option>
-                  </select>
+                  <Select id="su-filing" value={filing} onChange={setFiling} options={[{ value: 'single', label: 'Single' }, { value: 'married_joint', label: 'Married filing jointly' }, { value: 'married_separate', label: 'Married filing separately' }, { value: 'head_of_household', label: 'Head of household' }] as { value: FilingStatus; label: string }[]} />
                 </div>
                 <div className="field">
                   <label htmlFor="su-biz">Business name (optional)</label>

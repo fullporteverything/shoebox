@@ -13,6 +13,7 @@ import { estimate } from '../lib/tax/estimate.js'
 import type { Estimate } from '../lib/tax/estimate.js'
 import { taxTableFor } from '../lib/tax/y2026.js'
 import type { DayKind, Evidence, IncomeType, Plan, TripLog } from '../lib/types.js'
+import { Select } from '../components/Select.js'
 
 // ---------- questions ----------
 
@@ -74,9 +75,8 @@ function QuestionInput({ q, plan, onChange }: { q: Q; plan: Plan; onChange: (p: 
   }
   if (q.kind === 'select') {
     return (
-      <select id={id} className="select" value={(v as string | null) ?? ''} onChange={(e) => onChange({ [q.id]: e.target.value === '' && q.id !== 'occupation' && q.id !== 'entity' ? null : e.target.value } as Partial<Plan>)}>
-        {q.options!.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
+      <Select id={id} value={(v as string | null) ?? ''} options={q.options!}
+        onChange={(x) => onChange({ [q.id]: x === '' && q.id !== 'occupation' && q.id !== 'entity' ? null : x } as Partial<Plan>)} />
     )
   }
   return (
@@ -289,9 +289,7 @@ function IncomeCard({ pic }: { pic: Picture }) {
         }}>
           <div className="grid-2">
             <input aria-label="Source" id="inc-src" className="input" placeholder="Who paid you" value={f.source} onChange={(e) => setF({ ...f, source: e.target.value })} required />
-            <select aria-label="Type" id="inc-type" className="select" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value as IncomeType })}>
-              {Object.entries(typeLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
+            <Select aria-label="Type" id="inc-type" value={f.type} onChange={(v) => setF({ ...f, type: v })} options={Object.entries(typeLabel).map(([k, v]) => ({ value: k as IncomeType, label: v }))} />
           </div>
           <div className="grid-2">
             <input aria-label="Amount" id="inc-amt" className="input" inputMode="decimal" placeholder="Amount" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} required />

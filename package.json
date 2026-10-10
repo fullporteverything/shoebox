@@ -1,0 +1,29 @@
+{
+  "name": "shoebox",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:artifact": "vite build --mode artifact && node scripts/to-artifact.mjs",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/lib/tax/classify.test.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.130.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "zod": "4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "tsx": "^4.19.2",
+    "typescript": "5.6.3",
+    "vite": "5.4.11",
+    "vite-plugin-singlefile": "2.0.3"
+  }
+}

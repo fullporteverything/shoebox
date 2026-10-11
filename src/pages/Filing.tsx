@@ -3,13 +3,14 @@ import { Icon } from '../components/icons.js'
 import { PageTitle } from '../components/Shell.js'
 import { Link, Money } from '../components/ui.js'
 import { QuarterlyTable } from '../components/Quarterly.js'
-import { buildFilingPack, receiptsCsv, scheduleCCsv } from '../lib/filing.js'
+import { buildFilingPack, expensesCsv, receiptsCsv } from '../lib/filing.js'
 import { useSession } from '../lib/session.js'
 import { PassGate } from './Pass.js'
 import { PASS_REQUIRED_FROM } from '../lib/cloud.js'
 import { categoryById } from '../lib/tax/rules.js'
 import { stateByCode } from '../lib/tax/states.js'
 import { usdOf } from '../lib/tax/advisor.js'
+import { entityLabel } from '../lib/tax/entity.js'
 
 const filingLabels = { single: 'Single', married_joint: 'Married filing jointly', married_separate: 'Married filing separately', head_of_household: 'Head of household' } as const
 
@@ -39,7 +40,7 @@ export function Filing() {
           <ul className="free-list">
             <li><Icon name="check" size={16} /> A before-you-file checklist ({pack.attention.length ? `${pack.attention.length} item${pack.attention.length === 1 ? '' : 's'} to fix` : 'all clear'})</li>
             <li><Icon name="check" size={16} /> {pack.income.length} income type{pack.income.length === 1 ? '' : 's'}, with tax withheld</li>
-            {profile.workType !== 'w2' && <li><Icon name="check" size={16} /> {pack.scheduleC.length} Schedule C line{pack.scheduleC.length === 1 ? '' : 's'}, totals ready to copy</li>}
+            {profile.workType !== 'w2' && <li><Icon name="check" size={16} /> {pack.treatment === 'schedule_c' ? `${pack.scheduleC.length} Schedule C line${pack.scheduleC.length === 1 ? '' : 's'}` : `${pack.scheduleC.length} expense categor${pack.scheduleC.length === 1 ? 'y' : 'ies'} for ${pack.businessReturn}`}, totals ready to copy</li>}
             <li><Icon name="check" size={16} /> Deductions, estimated tax and your quarterly plan</li>
             <li><Icon name="check" size={16} /> All {pack.receipts.length} document{pack.receipts.length === 1 ? '' : 's'} as a PDF and two spreadsheets</li>
           </ul>
@@ -50,11 +51,16 @@ export function Filing() {
   const est = pic.est
   const st = stateByCode[profile.state]
   const se = profile.workType !== 'w2'
+  const onScheduleC = pack.treatment === 'schedule_c'
+  const biz = est?.business
+  const due = pack.businessReturnDue ? new Date(pack.businessReturnDue + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) : ''
   const unmarkedTrips = pic.trips.filter((t) => t.result.rule === 'unmarked')
   const checklist = [
     { ok: pack.attention.length === 0, text: pack.attention.length ? `${pack.attention.length} document${pack.attention.length === 1 ? '' : 's'} still need a look or are missing details.` : 'Every document is confirmed.', to: '/app/inbox' },
     { ok: pic.incomes.length > 0, text: pic.incomes.length ? `${pic.incomes.length} income record${pic.incomes.length === 1 ? '' : 's'} added.` : 'No income added yet. Add W-2s, 1099s or totals so the estimate is complete.', to: '/app/savings' },
     ...(unmarkedTrips.length ? [{ ok: false, text: `${unmarkedTrips.length} trip${unmarkedTrips.length === 1 ? '' : 's'} need business and personal days marked before travel can be counted.`, to: '/app/savings' }] : []),
+    ...(se && pic.plan.entity === '' && pic.incomes.some((i) => i.type === 'self_employment') ? [{ ok: false, text: 'Tell us how your business is set up. Until then it’s treated as a sole proprietorship on Schedule C.', to: '/app/savings' }] : []),
+    ...(se && biz && !biz.counted ? [{ ok: false, text: pack.treatment === 's_corp' ? 'Add your ownership share and S corp salary so your K-1 income is in the estimate.' : 'Add your ownership share so your K-1 income is in the estimate.', to: '/app/savings' }] : []),
     ...(se && pic.plan.priorYearTax == null ? [{ ok: false, text: 'Add last year’s total tax so the quarterly plan can use the safe harbor.', to: '/app/savings' }] : []),
   ]
   const fileBase = `shoebox-${year}-${profile.name.split(' ')[0].toLowerCase() || 'records'}`
@@ -67,7 +73,9 @@ export function Filing() {
         sub="Your year in the order a tax preparer or tax software asks for it. Every figure comes from your confirmed documents and answers."
         actions={
           <div className="filing-actions">
-            <button className="btn" onClick={() => { download(`${fileBase}-schedule-c.csv`, scheduleCCsv(pack)); toast('good', 'Schedule C summary downloaded.') }} disabled={!se}><Icon name="doc" /> Schedule C CSV</button>
+            {onScheduleC
+              ? <button className="btn" onClick={() => { download(`${fileBase}-schedule-c.csv`, expensesCsv(pack)); toast('good', 'Schedule C summary downloaded.') }} disabled={!se}><Icon name="doc" /> Schedule C CSV</button>
+              : <button className="btn" onClick={() => { download(`${fileBase}-business-expenses.csv`, expensesCsv(pack)); toast('good', 'Business expenses downloaded.') }} disabled={!se}><Icon name="doc" /> Business expenses CSV</button>}
             <button className="btn" onClick={() => { download(`${fileBase}-documents.csv`, receiptsCsv(pack)); toast('good', 'Document list downloaded.') }}><Icon name="receipts" /> All documents CSV</button>
             <button className="btn btn-gold" onClick={() => window.print()}><Icon name="upload" /> Print or save as PDF</button>
           </div>
@@ -90,6 +98,7 @@ export function Filing() {
           <div><dt>Filing status</dt><dd>{filingLabels[profile.filingStatus]}</dd></div>
           <div><dt>State</dt><dd>{st?.name ?? profile.state}</dd></div>
           {profile.businessName && <div><dt>Business</dt><dd>{profile.businessName}</dd></div>}
+          {se && <div><dt>Business type</dt><dd>{entityLabel(pic.plan.entity)}</dd></div>}
         </dl>
       </div>
 
@@ -107,7 +116,48 @@ export function Filing() {
         )}
       </div>
 
-      {se ? (
+      {se && !onScheduleC ? (
+        <>
+          <div className="card rise filing-sec">
+            <div className="card-head"><h2>Business expenses for {pack.businessReturn}</h2><span className="faint" style={{ fontSize: 13 }}>The {pack.treatment === 's_corp' ? 'company’s' : 'partnership’s'} own return</span></div>
+            {pack.scheduleCTotal === 0 ? (
+              <p className="faint">No business expenses recorded for {year}.</p>
+            ) : (
+              <table className="tbl">
+                <thead><tr><th>Expense</th><th className="num hide-sm">Docs</th><th className="num hide-sm">Paid</th><th className="num">Deductible</th></tr></thead>
+                <tbody>
+                  {pack.scheduleC.map((l) => <tr key={l.form}><td>{l.label}</td><td className="num hide-sm">{l.count}</td><td className="num hide-sm"><Money v={l.paid} /></td><td className="num"><Money v={l.amount} /></td></tr>)}
+                  {pack.tripsAllowed > 0 && <tr><td>Business trips, allocated by business days</td><td className="hide-sm" /><td className="hide-sm" /><td className="num"><Money v={pack.tripsAllowed} /></td></tr>}
+                </tbody>
+                <tfoot><tr><td>Total expenses</td><td className="hide-sm" colSpan={2} /><td className="num"><Money v={pack.scheduleCTotal} /></td></tr></tfoot>
+              </table>
+            )}
+            <p className="hint" style={{ marginTop: 10 }}>
+              These are the business’s expenses for its {pack.businessReturn}, not a Schedule C. Your own return uses the K-1 it gives you. {pack.businessReturn} for {year} is due {due}.
+              {' '}Meals are already at 50% and gifts capped at $25 a person. Mileage and home office aren’t included: the business usually pays those back to you under an accountable plan.
+            </p>
+          </div>
+          {biz && (
+            <div className="card rise filing-sec">
+              <div className="card-head"><h2>Your share</h2><span className="faint" style={{ fontSize: 13 }}>Schedule K-1 ({pack.businessReturn})</span></div>
+              <table className="tbl">
+                <tbody>
+                  <tr><td>Business profit before {pack.treatment === 's_corp' ? 'your salary' : 'owners’ shares'}</td><td className="num"><Money v={biz.net} /></td></tr>
+                  <tr><td>Your ownership share</td><td className="num">{biz.share == null ? <span className="faint">Not answered</span> : `${Math.round(biz.share * 100)}%`}</td></tr>
+                  {pack.treatment === 's_corp' && <tr><td>Your salary (W-2, Form 1040 line 1a)</td><td className="num">{pic.plan.ownerSalary == null ? <span className="faint">Not answered</span> : <Money v={biz.salary} />}</td></tr>}
+                  {pack.treatment === 's_corp' && biz.payrollTax > 0 && <tr><td>Payroll tax on your salary, both halves (Form 941)</td><td className="num"><Money v={biz.payrollTax} /></td></tr>}
+                  <tr><td>Your ordinary business income (K-1 box 1, to Schedule E, Part II)</td><td className="num">{biz.counted ? <Money v={biz.k1} /> : <span className="faint">Not counted yet</span>}</td></tr>
+                </tbody>
+              </table>
+              <p className="hint" style={{ marginTop: 10 }}>
+                {pack.treatment === 'partnership'
+                  ? 'An estimate from your share of what the business made. Your K-1 is the real figure, and it may add guaranteed payments or special allocations. Your share is generally also subject to self-employment tax on Schedule SE.'
+                  : 'An estimate from your share of what the company made after your salary and its payroll tax. Your K-1 is the real figure. K-1 income from an S corp isn’t subject to self-employment tax.'}
+              </p>
+            </div>
+          )}
+        </>
+      ) : se ? (
         <div className="card rise filing-sec">
           <div className="card-head"><h2>Schedule C expenses</h2><span className="faint" style={{ fontSize: 13 }}>Profit or loss from business</span></div>
           {pack.scheduleCTotal === 0 ? (
@@ -145,6 +195,7 @@ export function Filing() {
               <tr><td>Taxable income</td><td className="num"><Money v={est.taxable} /></td></tr>
               <tr><td>Federal income tax, after credits</td><td className="num"><Money v={est.incomeTax - est.credits} /></td></tr>
               {est.seTax > 0 && <tr><td>Self-employment tax</td><td className="num"><Money v={est.seTax} /></td></tr>}
+              {est.business.payrollTax > 0 && <tr><td>Payroll tax on your S corp salary (paid through payroll, not at filing)</td><td className="num"><Money v={est.business.payrollTax} /></td></tr>}
               <tr><td>State tax</td><td className="num">{est.state.amount != null ? <Money v={est.state.amount} /> : <span className="faint">Not estimated</span>}</td></tr>
               <tr><td>Already paid (withholding and estimates)</td><td className="num"><Money v={est.paid} /></td></tr>
             </tbody>

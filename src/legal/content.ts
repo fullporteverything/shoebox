@@ -191,6 +191,9 @@ Shoebox organizes records and suggests categories using general summaries of IRS
 ## Estimates and savings suggestions
 The tax estimate is a projection from the documents and answers you give us, using published figures for the tax year. It leaves out many things a real return includes, and states with graduated rates aren’t estimated at all. Savings suggestions appear only when your data meets a rule's published conditions, but whether a strategy suits you depends on facts we can’t see. The assistant is told to say when it isn’t sure rather than guess, but it can still be wrong. Never claim an expense without a real business purpose and records made at the time.
 
+## LLCs and other business types
+An LLC isn't a tax type of its own. With one owner and no election, the IRS taxes it like a sole proprietorship (Schedule C). With two or more owners it's a partnership that files Form 1065, and each owner reports a share from a Schedule K-1. An LLC that elected S-corp status files Form 1120-S and pays its owners a salary plus a K-1 share. Shoebox asks which applies to you. When it doesn't know your ownership share or S corp salary, it leaves the business out of the estimate and says so, rather than assuming. It doesn't estimate state LLC fees or franchise taxes except where it names the source.
+
 ## Your responsibility
 Check every item and keep your original records. Ask a qualified professional about your situation before filing.
 `,

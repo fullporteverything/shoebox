@@ -8,6 +8,7 @@ import { categoryById, groupLabels } from '../lib/tax/rules.js'
 import type { CategoryId } from '../lib/tax/rules.js'
 import { stateByCode } from '../lib/tax/states.js'
 import { buildPicture } from '../lib/tax/advisor.js'
+import { treatmentOf } from '../lib/tax/entity.js'
 import type { Receipt } from '../lib/types.js'
 import { ReviewNudge } from '../components/Reviews.js'
 import { SavingsMeter } from '../components/SavingsMeter.js'
@@ -91,7 +92,7 @@ export function Overview() {
         <div className="card kpi lift" style={{ ['--i' as string]: 1 }}>
           <div className="k"><Icon name="receipts" size={16} /> Business expenses</div>
           <div className="v"><CountUp value={stats.business} format={(n) => money(n, false)} /></div>
-          <div className="d">{profile.workType === 'w2' ? 'Not deductible federally on W-2 income alone' : 'Schedule C, lowers income and self-employment tax'}</div>
+          <div className="d">{profile.workType === 'w2' ? 'Not deductible federally on W-2 income alone' : { schedule_c: 'Schedule C, lowers income and self-employment tax', partnership: 'The partnership’s Form 1065, lowers your K-1 share', s_corp: 'The S corp’s Form 1120-S, lowers your K-1 share' }[treatmentOf(pic?.plan.entity)]}</div>
         </div>
         <div className="card kpi lift" style={{ ['--i' as string]: 2 }}>
           <div className="k"><Icon name="inbox" size={16} /> Needs review</div>

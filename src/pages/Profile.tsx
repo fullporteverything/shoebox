@@ -10,6 +10,8 @@ import { passwordStrength } from '../lib/crypto.js'
 import { useSession } from '../lib/session.js'
 import { states } from '../lib/tax/states.js'
 import type { FilingStatus, Profile as P, WorkType } from '../lib/types.js'
+import { emptyPlan } from '../lib/types.js'
+import { entityOptions } from '../lib/tax/entity.js'
 import { Select } from '../components/Select.js'
 import { ReviewCard } from '../components/Reviews.js'
 import { FoundingCard } from '../components/Founding.js'
@@ -285,10 +287,17 @@ export function Profile({ tab }: { tab: 'profile' | 'settings' }) {
                   <Select id="pf-year" value={p.taxYear} onChange={(v) => setP({ ...p, taxYear: v })} options={[0, 1, 2].map((d) => new Date().getFullYear() - d).map((y) => ({ value: y, label: String(y), hint: y === 2026 ? 'Estimates available' : undefined }))} />
                 </div>
               </div>
-              <div className="field">
-                <label htmlFor="pf-biz">Business name</label>
-                <input id="pf-biz" className="input" value={p.businessName} onChange={(e) => setP({ ...p, businessName: e.target.value })} disabled={p.workType === 'w2'} />
+              <div className="grid-2">
+                <div className="field">
+                  <label htmlFor="pf-biz">Business name</label>
+                  <input id="pf-biz" className="input" value={p.businessName} onChange={(e) => setP({ ...p, businessName: e.target.value })} disabled={p.workType === 'w2'} />
+                </div>
+                <div className="field">
+                  <label htmlFor="pf-entity">Business type</label>
+                  <Select id="pf-entity" value={p.plan?.entity ?? ''} onChange={(v) => setP({ ...p, plan: { ...emptyPlan, ...(p.plan ?? {}), entity: v } })} options={entityOptions} disabled={p.workType === 'w2'} />
+                </div>
               </div>
+              {p.workType !== 'w2' && <p className="hint" style={{ marginTop: -8 }}>An LLC is taxed by how many owners it has and any election it filed. A single-member LLC with no election is taxed like a sole proprietor. Multi-member LLCs and S corps file their own return, due March 15 for a calendar year.</p>}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                 <button type="button" className="btn btn-ghost" disabled={!dirty} onClick={() => setP(profile)}>Reset</button>
                 <button className="btn btn-gold" disabled={!dirty || busy}>{busy ? 'Re-sorting…' : 'Save changes'}</button>

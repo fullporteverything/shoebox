@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { estimate, savingsFor } from './estimate.js'
 import { buildPicture } from './advisor.js'
 import { entityReturnDue, treatmentOf } from './entity.js'
+import { buildFilingPack, expensesCsv } from '../filing.js'
 import { emptyPlan } from '../types.js'
 import type { IncomeEntry, Plan, Profile } from '../types.js'
 
@@ -57,6 +58,11 @@ test('multi-member LLC without an ownership share: asks, and invents nothing', (
   assert.ok(pic.opportunities.every((o) => o.savings == null), pic.opportunities.filter((o) => o.savings != null).map((o) => o.id).join())
   assert.equal(pic.opportunities.find((o) => o.id === 'retire'), undefined)
 
+  // The filing pack calls it the partnership's return, not Schedule C.
+  const pack = buildFilingPack({ ...profile, plan: { ...emptyPlan, entity: 'partnership' } }, [], se(120_000), {})
+  assert.equal(pack.businessReturn, 'Form 1065')
+  assert.equal(pack.businessReturnDue, '2027-03-15')
+  assert.ok(!expensesCsv(pack).includes('Schedule C'))
 })
 
 test('multi-member LLC with a share: K-1 share is subject to SE tax', () => {

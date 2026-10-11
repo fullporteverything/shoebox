@@ -15,19 +15,22 @@ import type { Opportunity, Picture, QuestionId, Trip, TripResult } from '../lib/
 import { estimate } from '../lib/tax/estimate.js'
 import type { Estimate } from '../lib/tax/estimate.js'
 import { taxTableFor } from '../lib/tax/y2026.js'
+import { entityOptions, treatmentOf } from '../lib/tax/entity.js'
 import type { DayKind, Evidence, IncomeType, Plan, TripLog } from '../lib/types.js'
 import { Select } from '../components/Select.js'
 
 // ---------- questions ----------
 
-type Q = { id: QuestionId; label: string; hint?: string; kind: 'bool' | 'money' | 'number' | 'select'; options?: { value: string; label: string }[] }
+type Q = { id: QuestionId; label: string; hint?: string; kind: 'bool' | 'money' | 'number' | 'select'; options?: { value: string; label: string; hint?: string }[]; show?: (p: Plan) => boolean }
 
 const QUESTIONS: { title: string; items: Q[] }[] = [
   {
     title: 'About you',
     items: [
       { id: 'occupation', label: 'What kind of work?', kind: 'select', options: [{ value: '', label: 'Choose…' }, { value: 'content_creator', label: 'Content creator' }, { value: 'consultant', label: 'Consultant or freelancer' }, { value: 'trades', label: 'Trades or contractor' }, { value: 'rideshare_delivery', label: 'Rideshare or delivery' }, { value: 'real_estate', label: 'Real estate' }, { value: 'retail_ecommerce', label: 'Retail or e-commerce' }, { value: 'other', label: 'Something else' }] },
-      { id: 'entity', label: 'Business set up as', kind: 'select', options: [{ value: '', label: 'Not sure' }, { value: 'sole_prop', label: 'Sole proprietor / single-member LLC' }, { value: 's_corp', label: 'S corporation' }, { value: 'partnership', label: 'Partnership / multi-member LLC' }] },
+      { id: 'entity', label: 'Business set up as', kind: 'select', options: entityOptions, hint: 'An LLC is taxed by how many owners it has and any election it filed. A single-member LLC with no election is taxed like a sole proprietor.' },
+      { id: 'ownershipPct', label: 'Your share of the business’s profit (%)', kind: 'number', hint: 'From your operating agreement or your K-1. 0 to 100.', show: (p) => treatmentOf(p.entity) !== 'schedule_c' },
+      { id: 'ownerSalary', label: 'Salary your S corp pays you this year', kind: 'money', hint: 'Gross W-2 pay from your own company. Enter it here, not under Income, so it isn’t counted twice.', show: (p) => treatmentOf(p.entity) === 's_corp' },
       { id: 'age65', label: '65 or older?', kind: 'bool' },
       { id: 'age50', label: '50 or older?', kind: 'bool', hint: 'Unlocks retirement catch-up contributions.' },
       { id: 'dependents', label: 'Children under 17', kind: 'number' },
@@ -325,10 +328,16 @@ function IncomeCard({ pic }: { pic: Picture }) {
 }
 
 function Breakdown({ e }: { e: Estimate }) {
+  const b = e.business
+  const business: [string, number, string?][] =
+    b.treatment === 'schedule_c'
+      ? [['Self-employment income', e.seGross], ['Net business profit', e.seNet]]
+      : b.treatment === 'partnership'
+        ? [['Partnership income', e.seGross], ['Partnership profit', b.net], ['Your share (K-1)', b.k1]]
+        : [['S corp income', e.seGross], ['Company profit before your salary', b.net], ['Your salary (W-2)', b.salary], ['Your share of profit (K-1)', b.k1]]
   const rows: [string, number, string?][] = [
     ['W-2 wages', e.wages],
-    ['Self-employment income', e.seGross],
-    ['Net business profit', e.seNet],
+    ...business,
     ['Interest, dividends, other', e.investment],
     ['Adjusted gross income', e.agi, 'strong'],
     [e.deductionKind === 'standard' ? 'Standard deduction' : 'Itemized deductions', -e.deduction],
@@ -339,6 +348,7 @@ function Breakdown({ e }: { e: Estimate }) {
     ['Income tax', e.incomeTax],
     ['Self-employment tax', e.seTax],
     ['Credits', -e.credits],
+    ['Payroll tax on your salary (both halves)', b.payrollTax],
   ]
   return (
     <table className="tax-table">
@@ -347,6 +357,7 @@ function Breakdown({ e }: { e: Estimate }) {
           <tr key={k} style={s ? { fontWeight: 650 } : undefined}><td>{k}</td><td className="r num">{v < 0 ? '−' : ''}<Money v={Math.abs(v)} whole /></td></tr>
         ))}
         <tr><td>State tax</td><td className="r num">{e.state.amount == null ? 'Not estimated' : <Money v={e.state.amount} whole />}</td></tr>
+        {!b.counted && <tr><td>Your share of the business</td><td className="r num">Not counted yet</td></tr>}
       </tbody>
     </table>
   )
@@ -457,12 +468,12 @@ export function Savings() {
             <div className="card kpi lift" style={{ ['--i' as string]: 0 }}>
               <div className="k"><Icon name="arrowRight" size={16} /> Income {pace === 'pace' ? 'for the year' : 'so far'}</div>
               <div className="v"><CountUp value={shown.wages + shown.seGross + shown.investment} format={(n) => money(n, false)} /></div>
-              <div className="d">{pic.incomes.length} source{pic.incomes.length === 1 ? '' : 's'} · net business profit <Money v={shown.seNet} whole /></div>
+              <div className="d">{pic.incomes.length} source{pic.incomes.length === 1 ? '' : 's'} · {shown.business.treatment === 'schedule_c' ? <>net business profit <Money v={shown.seNet} whole /></> : shown.business.counted ? <>your K-1 share <Money v={shown.business.k1} whole /></> : 'your share not counted yet'}</div>
             </div>
             <div className="card kpi lift" style={{ ['--i' as string]: 1 }}>
               <div className="k"><Icon name="scale" size={16} /> Estimated tax</div>
               <div className="v"><CountUp value={shown.totalTax} format={(n) => money(n, false)} /></div>
-              <div className="d">Federal <Money v={shown.federalTotal} whole /> · state {shown.state.amount == null ? 'not estimated' : <Money v={shown.state.amount} whole />}</div>
+              <div className="d">Federal <Money v={shown.federalTotal} whole /> · state {shown.state.amount == null ? 'not estimated' : <Money v={shown.state.amount} whole />}{shown.business.payrollTax > 0 && <> · payroll <Money v={shown.business.payrollTax} whole /></>}</div>
             </div>
             <div className="card kpi lift" style={{ ['--i' as string]: 2 }}>
               <div className="k"><Icon name="check" size={16} /> Paid so far</div>
@@ -520,7 +531,7 @@ export function Savings() {
               {QUESTIONS.map((g) => (
                 <div key={g.title} className="stack" style={{ gap: 10 }}>
                   <div className="eyebrow">{g.title}</div>
-                  {g.items.map((q) => (
+                  {g.items.filter((q) => !q.show || q.show(pic.plan)).map((q) => (
                     <div key={q.id} className="field">
                       <label htmlFor={`q-${q.id}`}>{q.label}</label>
                       <QuestionInput q={q} plan={pic.plan} onChange={onPlan} />

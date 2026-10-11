@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { Bandit } from '../components/Bandit.js'
 import { Icon } from '../components/icons.js'
 import { PageTitle } from '../components/Shell.js'
 import { Link } from '../components/ui.js'
@@ -80,7 +81,12 @@ export function Pass({ route }: { route: string }) {
                   </div>
                 )}
               </div>
-              {owned ? <span className="chip good"><span className="dot" /> Unlocked</span> : quote?.founding ? <span className="chip gold"><Icon name="sparkle" size={12} /> Founding</span> : null}
+              {owned ? (
+                <div className="pass-owned">
+                  <Bandit pose="celebrate" size={92} />
+                  <span className="chip good"><span className="dot" /> Unlocked</span>
+                </div>
+              ) : quote?.founding ? <span className="chip gold"><Icon name="sparkle" size={12} /> Founding</span> : null}
             </div>
             <ul className="pass-list">
               {included.map((f) => (

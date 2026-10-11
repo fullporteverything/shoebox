@@ -7,6 +7,7 @@ import { SignIn, SignUp } from './pages/Auth.js'
 import { Inbox } from './pages/Inbox.js'
 import { Legal } from './pages/Legal.js'
 import { Lockdown } from './pages/Lockdown.js'
+import { NotFound } from './pages/NotFound.js'
 import { Overview } from './pages/Overview.js'
 import { Profile } from './pages/Profile.js'
 import { Landing } from './pages/Public.js'
@@ -28,7 +29,9 @@ function AppPage({ route }: { route: string }) {
     case '/app/security': return <Security />
     case '/app/profile': return <Profile tab="profile" />
     case '/app/profile/settings': return <Profile tab="settings" />
-    default: return <Overview />
+    case '/app':
+    case '/app/': return <Overview />
+    default: return <NotFound />
   }
 }
 

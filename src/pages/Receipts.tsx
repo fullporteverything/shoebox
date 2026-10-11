@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+import { Bandit } from '../components/Bandit.js'
 import { Icon } from '../components/icons.js'
 import { ReceiptDrawer } from '../components/ReceiptDrawer.js'
 import { PageTitle } from '../components/Shell.js'
@@ -46,7 +47,10 @@ export function Receipts() {
           <Seg label="Status" value={status} onChange={setStatus} options={[{ value: 'all', label: 'Any' }, { value: 'needs_review', label: 'Review' }, { value: 'confirmed', label: 'Confirmed' }]} />
         </div>
         {shown.length === 0 ? (
-          <div className="empty">{receipts.length ? 'Nothing matches those filters.' : <>No receipts yet. <Link to="/app/inbox">Add your first</Link>.</>}</div>
+          <div className="empty">
+            <Bandit pose="thinking" size={112} />
+            {receipts.length ? 'Nothing matches those filters.' : <>No receipts yet. <Link to="/app/inbox">Add your first</Link>.</>}
+          </div>
         ) : (
           <div className="rows stagger">
             {shown.map((r, i) => (

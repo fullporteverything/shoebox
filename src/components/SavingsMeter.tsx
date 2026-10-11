@@ -54,7 +54,7 @@ export function SavingsMeter({ pic, profile }: { pic: Picture | null; profile: P
             </div>
           )}
         </div>
-        {total > 0 && (
+        {m.potential > 0 && m.saved > 0 && (
           <div className="meter-bar" role="img" aria-label={`${money(m.saved, false)} saved of ${money(total, false)} possible`}>
             <i style={{ width: `${pct}%` }} />
           </div>

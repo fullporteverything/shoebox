@@ -176,7 +176,9 @@ export function tripResult(t: Trip, log: TripLog | undefined, profile: Pick<Prof
 }
 
 const round = (n: number) => Math.round(n * 100) / 100
-const fmt = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+// Whole dollars print without cents ($4,400, not $4,400.00); other amounts keep them.
+const fmt = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: Number.isInteger(n) ? 0 : 2 })
+const longDate = (iso: string) => new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
 
 // ---------- the whole picture ----------
 
@@ -374,7 +376,7 @@ function opportunities(profile: Profile, plan: Plan, receipts: Receipt[], est: E
       const safe = plan.priorYearTax != null ? plan.priorYearTax * ((plan.priorYearAgi ?? 0) > t.safeHarborHighAgi ? 1.1 : 1) : null
       out.push({
         id: 'estimated', title: 'Pay estimated tax to avoid an underpayment penalty', status: plan.priorYearTax === null ? 'check' : 'applies', savings: null,
-        summary: `You’re on track to owe about ${fmt(est.balance)}. The next quarterly payment is due ${next}.`,
+        summary: `You’re on track to owe about ${fmt(est.balance)}. The next quarterly payment is due ${longDate(next)}.`,
         why: [
           safe != null ? `Safe harbor: paying ${fmt(safe)} this year (${(plan.priorYearAgi ?? 0) > t.safeHarborHighAgi ? '110%' : '100%'} of last year’s tax) through withholding and estimates avoids the penalty, even if you owe more in April.` : 'Safe harbor: pay 100% of last year’s total tax (110% if last year’s AGI was over $150,000), or 90% of this year’s, through withholding and quarterly estimates.',
           'Due dates: April 15, June 15, September 15 and January 15.',

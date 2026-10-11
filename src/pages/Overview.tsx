@@ -101,7 +101,7 @@ export function Overview() {
         <Link to="/app/savings" className="card kpi lift" style={{ ['--i' as string]: 3, color: 'inherit', textDecoration: 'none' }}>
           <div className="k"><Icon name="scale" size={16} /> Estimated tax</div>
           <div className="v">{pic?.est ? <CountUp value={pic.est.totalTax} format={(n) => money(n, false)} /> : '—'}</div>
-          <div className="d">{pic?.est ? `${pic.opportunities.length} ways to save · open the assistant` : `Estimates cover tax year 2026`}</div>
+          <div className="d">{pic?.est ? `${pic.opportunities.length} suggestion${pic.opportunities.length === 1 ? '' : 's'} on the Savings page` : `Estimates cover tax year 2026`}</div>
         </Link>
       </div>
 

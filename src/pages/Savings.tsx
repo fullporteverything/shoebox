@@ -491,7 +491,7 @@ export function Savings() {
           ))}
           {pic.opportunities.length > 0 && (
             <div className="stack stagger" style={{ gap: 12 }}>
-              <div className="card-head" style={{ marginBottom: 0 }}><h2 style={{ fontSize: 19 }}>Ways to save</h2><span className="faint" style={{ fontSize: 13 }}>{pic.opportunities.length} found from your records</span></div>
+              <div className="card-head" style={{ marginBottom: 0 }}><h2 style={{ fontSize: 19 }}>Ways to save</h2><span className="faint" style={{ fontSize: 13 }}>{pic.opportunities.length} suggestion{pic.opportunities.length === 1 ? '' : 's'} from your records</span></div>
               {pic.opportunities.map((o, i) => <OpportunityCard key={o.id} o={o} plan={pic.plan} onPlan={onPlan} i={i} />)}
             </div>
           )}

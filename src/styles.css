@@ -871,3 +871,15 @@ input[type='date']::-webkit-calendar-picker-indicator { cursor: pointer; opacity
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .tour-card, .tour-scrim { animation: none; } .tour-ring { transition: none; } }
 .tour-scrim.clear { background: transparent; }
+
+/* Polish pass */
+/* Big figures keep the display face; the count-up wrapper used to switch them to monospace ("$2 , 518", slashed zeros). */
+.kpi .v .num, .meter-v .num, .saved-counter .num, h1 .num, h2 .num, .founding-price .num, .trip-head .num { font-family: inherit; letter-spacing: inherit; }
+/* Sign-up card never wider than the screen. */
+.auth { grid-template-columns: minmax(0, 460px); justify-content: center; }
+.auth-card { width: 100%; min-width: 0; }
+/* Review nudge wraps its buttons under the text on phones. */
+.nudge > div { min-width: min(100%, 240px); }
+@media (max-width: 640px) { .hide-sm { display: none; } .tbl { font-size: 13px; } .tbl td, .tbl th { padding: 8px 6px; } }
+@media (max-width: 420px) { .nav a { padding: 8px 2px; font-size: 9.5px; } }
+@media (max-width: 420px) { .auth-card { padding: 22px 18px; } .auth-card .btn { min-width: 0; white-space: normal; } }

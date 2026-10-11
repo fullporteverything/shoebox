@@ -79,9 +79,9 @@ export function Filing() {
           <p className="faint">No income recorded for {year}.</p>
         ) : (
           <table className="tbl">
-            <thead><tr><th>Type</th><th className="num">Records</th><th className="num">Amount</th><th className="num">Tax withheld</th></tr></thead>
+            <thead><tr><th>Type</th><th className="num hide-sm">Records</th><th className="num">Amount</th><th className="num">Tax withheld</th></tr></thead>
             <tbody>
-              {pack.income.map((i) => <tr key={i.type}><td>{i.label}</td><td className="num">{i.count}</td><td className="num"><Money v={i.amount} /></td><td className="num"><Money v={i.withheld} /></td></tr>)}
+              {pack.income.map((i) => <tr key={i.type}><td>{i.label}</td><td className="num hide-sm">{i.count}</td><td className="num"><Money v={i.amount} /></td><td className="num"><Money v={i.withheld} /></td></tr>)}
             </tbody>
           </table>
         )}
@@ -94,14 +94,14 @@ export function Filing() {
             <p className="faint">No business expenses recorded for {year}.</p>
           ) : (
             <table className="tbl">
-              <thead><tr><th>Line</th><th>What’s in it</th><th className="num">Docs</th><th className="num">Paid</th><th className="num">Deductible</th></tr></thead>
+              <thead><tr><th>Line</th><th>What’s in it</th><th className="num hide-sm">Docs</th><th className="num hide-sm">Paid</th><th className="num">Deductible</th></tr></thead>
               <tbody>
-                {pack.scheduleC.map((l) => <tr key={l.form}><td className="nowrap">{l.form.replace('Schedule C, ', '').replace(/^line/, 'Line')}</td><td>{l.label}</td><td className="num">{l.count}</td><td className="num"><Money v={l.paid} /></td><td className="num"><Money v={l.amount} /></td></tr>)}
-                {pack.tripsAllowed > 0 && <tr><td className="nowrap">Lines 24a/24b</td><td>Business trips, allocated by business days</td><td /><td /><td className="num"><Money v={pack.tripsAllowed} /></td></tr>}
-                {pack.mileage > 0 && <tr><td className="nowrap">Line 9</td><td>Standard mileage ({(pic.plan.milesFirstHalf ?? 0) + (pic.plan.milesSecondHalf ?? 0)} miles)</td><td /><td /><td className="num"><Money v={pack.mileage} /></td></tr>}
-                {pack.homeOffice > 0 && <tr><td className="nowrap">Line 30</td><td>Home office, simplified method ({pic.plan.homeOfficeSqFt} sq ft)</td><td /><td /><td className="num"><Money v={pack.homeOffice} /></td></tr>}
+                {pack.scheduleC.map((l) => <tr key={l.form}><td className="nowrap">{l.form.replace('Schedule C, ', '').replace(/^line/, 'Line')}</td><td>{l.label}</td><td className="num hide-sm">{l.count}</td><td className="num hide-sm"><Money v={l.paid} /></td><td className="num"><Money v={l.amount} /></td></tr>)}
+                {pack.tripsAllowed > 0 && <tr><td className="nowrap">Lines 24a/24b</td><td>Business trips, allocated by business days</td><td className="hide-sm" /><td className="hide-sm" /><td className="num"><Money v={pack.tripsAllowed} /></td></tr>}
+                {pack.mileage > 0 && <tr><td className="nowrap">Line 9</td><td>Standard mileage ({(pic.plan.milesFirstHalf ?? 0) + (pic.plan.milesSecondHalf ?? 0)} miles)</td><td className="hide-sm" /><td className="hide-sm" /><td className="num"><Money v={pack.mileage} /></td></tr>}
+                {pack.homeOffice > 0 && <tr><td className="nowrap">Line 30</td><td>Home office, simplified method ({pic.plan.homeOfficeSqFt} sq ft)</td><td className="hide-sm" /><td className="hide-sm" /><td className="num"><Money v={pack.homeOffice} /></td></tr>}
               </tbody>
-              <tfoot><tr><td colSpan={4}>Total expenses</td><td className="num"><Money v={pack.scheduleCTotal} /></td></tr></tfoot>
+              <tfoot><tr><td colSpan={2}>Total expenses</td><td className="hide-sm" colSpan={2} /><td className="num"><Money v={pack.scheduleCTotal} /></td></tr></tfoot>
             </table>
           )}
           <p className="hint" style={{ marginTop: 10 }}>Meals are already at 50% and gifts capped at $25 a person. Mileage and actual car costs can’t both be claimed for the same car; check which your preparer uses.</p>
@@ -147,12 +147,12 @@ export function Filing() {
         <div className="card rise filing-sec">
           <div className="card-head"><h2>Trips</h2><span className="faint" style={{ fontSize: 13 }}>IRS Publication 463</span></div>
           <table className="tbl">
-            <thead><tr><th>Trip</th><th>Dates</th><th className="num">Business / total days</th><th className="num">Counted</th></tr></thead>
+            <thead><tr><th>Trip</th><th className="hide-sm">Dates</th><th className="num">Business / total days</th><th className="num">Counted</th></tr></thead>
             <tbody>
               {pic.trips.map(({ trip, result }) => (
                 <tr key={trip.key}>
                   <td>{trip.cities.join(', ') || trip.country}</td>
-                  <td className="nowrap">{trip.start} to {trip.end}</td>
+                  <td className="nowrap hide-sm">{trip.start} to {trip.end}</td>
                   <td className="num">{result.rule === 'unmarked' ? <span className="faint">Not marked</span> : `${result.businessDays} / ${trip.totalDays}`}</td>
                   <td className="num">{result.rule === 'unmarked' ? '—' : <Money v={result.allowed} />}</td>
                 </tr>
@@ -168,15 +168,15 @@ export function Filing() {
           <p className="faint">No documents for {year}.</p>
         ) : (
           <table className="tbl tbl-docs">
-            <thead><tr><th>Date</th><th>Merchant</th><th>Category</th><th className="num">Paid</th><th className="num">Biz %</th><th className="num">Deductible</th></tr></thead>
+            <thead><tr><th>Date</th><th>Merchant</th><th className="hide-sm">Category</th><th className="num hide-sm">Paid</th><th className="num hide-sm">Biz %</th><th className="num">Deductible</th></tr></thead>
             <tbody>
               {pack.receipts.map((r) => (
                 <tr key={r.id} className={r.status === 'needs_review' ? 'todo' : ''}>
                   <td className="nowrap">{r.extraction.date || '—'}</td>
                   <td>{r.extraction.merchant}{r.extraction.businessPurpose ? <div className="faint sub">{r.extraction.businessPurpose}</div> : null}</td>
-                  <td>{categoryById[r.classification.category].label}</td>
-                  <td className="num">{usdOf(r) != null ? <Money v={usdOf(r)!} /> : '—'}</td>
-                  <td className="num">{r.businessPct}%</td>
+                  <td className="hide-sm">{categoryById[r.classification.category].label}</td>
+                  <td className="num hide-sm">{usdOf(r) != null ? <Money v={usdOf(r)!} /> : '—'}</td>
+                  <td className="num hide-sm">{r.businessPct}%</td>
                   <td className="num"><Money v={r.classification.deductible} /></td>
                 </tr>
               ))}

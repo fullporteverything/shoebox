@@ -104,6 +104,8 @@ Your vault is encrypted in your browser with AES-256-GCM before it goes anywhere
 
 Alongside the ciphertext our servers keep what's needed to run your account: your email address, the salt and wrapped key, your security policy, a list of the devices signed in to your account (browser and operating system, time zone, and when each was first and last used), sign-in lockout counters, and, while two-factor is on, your authenticator secret and hashed recovery codes so a sign-in can't skip the code. We keep this until you delete your account or a shred removes it. Signing a device out erases that device's copy the next time it comes online.
 
+**Who at Shoebox can see this:** a small number of Shoebox staff can see, in an internal admin tool, the account information listed above: your email address, when you joined, your devices, lockout counters, how many receipts and other records you have (never what's in them, which we can't read), your passes, your review and your savings figure. They use it to give support, approve reviews, handle billing and keep accounts secure, and may keep internal support notes on your account. They never see your password, your encryption keys or your authenticator secret.
+
 ## Exchange rates
 For a receipt in another currency, Shoebox looks up the European Central Bank's published exchange rate for the receipt's date through the Frankfurter API (frankfurter.dev). Only the currency code and the date are sent: never the amount, the merchant or anything about you.
 

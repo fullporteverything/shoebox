@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { Bandit } from '../components/Bandit.js'
 import { Icon } from '../components/icons.js'
 import { Link, Seg } from '../components/ui.js'
 import { passwordStrength } from '../lib/crypto.js'
@@ -203,7 +204,10 @@ export function SignUp() {
           <div className="auth-steps"><i className="on" /><i className={step >= 1 ? 'on' : ''} /><i className={step === 2 ? 'on' : ''} /></div>
           {step === 2 ? (
             <div style={{ marginTop: 20 }}>
-              <p className="muted" style={{ marginBottom: 16 }}>Your vault is ready. A code from your phone on every sign-in means a stolen password alone won’t open it.</p>
+              <div className="auth-ready">
+                <Bandit pose="wave" size={68} />
+                <p className="muted">Your vault is ready. A code from your phone on every sign-in means a stolen password alone won’t open it.</p>
+              </div>
               <TwoFactorSetup onDone={() => navigate('/app/inbox', { replace: true })} onSkip={() => navigate('/app/inbox', { replace: true })} />
               <p className="hint" style={{ marginTop: 12 }}>Skipping is fine. You can turn it on later in Profile → Settings.</p>
             </div>

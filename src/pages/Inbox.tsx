@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { Bandit } from '../components/Bandit.js'
 import { Icon } from '../components/icons.js'
 import { ReceiptDrawer } from '../components/ReceiptDrawer.js'
 import { PageTitle } from '../components/Shell.js'
@@ -239,11 +240,7 @@ export function Inbox() {
         </div>
         {review.length === 0 ? (
           <div className="empty">
-            <svg className="art" viewBox="0 0 120 90" aria-hidden="true">
-              <rect x="38" y="6" width="44" height="54" rx="4" fill="var(--glass-2)" stroke="var(--glass-border)" />
-              <path d="M47 20h26M47 30h26M47 40h16" stroke="var(--ink-3)" strokeWidth="3" strokeLinecap="round" />
-              <path d="M14 48 24 40h72l10 8v32a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4z" fill="var(--gold)" opacity=".9" />
-            </svg>
+            <Bandit pose="sleep" size={112} />
             Nothing to review. New documents land here after they’re sorted.
           </div>
         ) : (

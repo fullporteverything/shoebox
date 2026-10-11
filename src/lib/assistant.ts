@@ -1,6 +1,7 @@
 import type { Picture } from './tax/advisor.js'
 import { categoryById, RULES_REVIEWED } from './tax/rules.js'
 import { stateByCode } from './tax/states.js'
+import { businessReturn, entityLabel, treatmentOf } from './tax/entity.js'
 import type { Profile, Receipt } from './types.js'
 import { usdOf } from './tax/advisor.js'
 
@@ -10,7 +11,7 @@ const $ = (n: number) => '$' + Math.round(n).toLocaleString('en-US')
 export function contextFor(profile: Profile, receipts: Receipt[], pic: Picture): string {
   const p = pic.plan
   const lines: string[] = []
-  lines.push(`Tax year ${profile.taxYear}. State: ${stateByCode[profile.state]?.name ?? profile.state}. Filing status: ${profile.filingStatus.replace('_', ' ')}. Work: ${profile.workType.replace('_', ' ')}${p.occupation ? `, occupation ${p.occupation.replace('_', ' ')}` : ''}${p.entity ? `, entity ${p.entity.replace('_', ' ')}` : ''}.`)
+  lines.push(`Tax year ${profile.taxYear}. State: ${stateByCode[profile.state]?.name ?? profile.state}. Filing status: ${profile.filingStatus.replace('_', ' ')}. Work: ${profile.workType.replace('_', ' ')}${p.occupation ? `, occupation ${p.occupation.replace('_', ' ')}` : ''}${p.entity ? `, business set up as ${entityLabel(p.entity)} (files ${businessReturn[treatmentOf(p.entity)]})` : ''}.`)
   const known = Object.entries(p).filter(([k, v]) => v !== null && v !== '' && k !== 'occupation' && k !== 'entity').map(([k, v]) => `${k}=${v}`)
   const unknown = Object.entries(p).filter(([, v]) => v === null || v === '').map(([k]) => k)
   if (known.length) lines.push(`Answers: ${known.join(', ')}.`)

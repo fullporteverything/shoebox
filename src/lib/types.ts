@@ -19,7 +19,10 @@ export type Profile = {
 // the assistant asks instead of assuming.
 export type Plan = {
   occupation: '' | 'content_creator' | 'consultant' | 'trades' | 'rideshare_delivery' | 'real_estate' | 'retail_ecommerce' | 'other'
-  entity: '' | 'sole_prop' | 's_corp' | 'partnership'
+  // How the business is set up; see tax/entity.ts. '' means not answered.
+  entity: '' | 'sole_prop' | 'smllc' | 'llc_s_corp' | 'partnership' | 's_corp'
+  ownershipPct: number | null // 0..100, your share of a partnership's or S corp's profit
+  ownerSalary: number | null // W-2 salary your S corp pays you this year
   age65: boolean | null
   age50: boolean | null
   dependents: number | null // qualifying children under 17
@@ -42,7 +45,7 @@ export type Plan = {
 }
 
 export const emptyPlan: Plan = {
-  occupation: '', entity: '', age65: null, age50: null, dependents: null, hdhp: null, hsaContrib: null, healthPremiums: null,
+  occupation: '', entity: '', ownershipPct: null, ownerSalary: null, age65: null, age50: null, dependents: null, hdhp: null, hsaContrib: null, healthPremiums: null,
   retirement: null, retirementContrib: null, estimatedPaid: null, priorYearTax: null, priorYearAgi: null, homeOfficeSqFt: null,
   milesFirstHalf: null, milesSecondHalf: null, tips: null, overtime: null, kidsCanWork: null, startedThisYear: null, shareSavings: null,
 }

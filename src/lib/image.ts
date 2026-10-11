@@ -16,7 +16,7 @@ export async function prepareImage(file: Blob, maxSide = 1600): Promise<{ blob: 
   ctx.drawImage(bitmap, 0, 0, w, h)
   if ('close' in bitmap) (bitmap as ImageBitmap).close()
   const blob = await new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('encode'))), 'image/jpeg', 0.86))
-  return { blob, dataUrl: canvas.toDataURL('image/jpeg', 0.86) }
+  return { blob, dataUrl: storedCopy(canvas) }
 }
 
 async function loadBitmap(file: Blob): Promise<ImageBitmap | HTMLImageElement> {
@@ -47,4 +47,20 @@ export function dataUrlToBlob(dataUrl: string): Blob {
   const u = new Uint8Array(bin.length)
   for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i)
   return new Blob([u], { type: mime })
+}
+
+// The copy kept in the vault: 1280 px on the long side at quality 0.8 is
+// still easy to read and about half the size of what the AI is sent, which
+// matters because every stored byte is synced and kept on the server.
+const STORE_SIDE = 1280
+function storedCopy(src: HTMLCanvasElement): string {
+  const scale = Math.min(1, STORE_SIDE / Math.max(src.width, src.height))
+  if (scale === 1) return src.toDataURL('image/jpeg', 0.8)
+  const c = document.createElement('canvas')
+  c.width = Math.round(src.width * scale)
+  c.height = Math.round(src.height * scale)
+  const ctx = c.getContext('2d')!
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(src, 0, 0, c.width, c.height)
+  return c.toDataURL('image/jpeg', 0.8)
 }

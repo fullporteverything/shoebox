@@ -5,6 +5,7 @@ import { useSession } from '../lib/session.js'
 import { Icon, Logo } from './icons.js'
 import type { IconName } from './icons.js'
 import { Avatar, Link } from './ui.js'
+import { Tour } from './Tour.js'
 
 const items: { to: string; label: string; icon: IconName }[] = [
   { to: '/app', label: 'Overview', icon: 'overview' },
@@ -53,7 +54,7 @@ export function Shell({ route, children }: { route: string; children: ReactNode 
           ))}
         </nav>
         <div className="dock-foot">
-          <button className="vault-status" style={{ border: 0, cursor: 'pointer' }} onClick={() => lock('Locked by you.')} title="Lock the vault now">
+          <button className="vault-status" data-tour="vault" style={{ border: 0, cursor: 'pointer' }} onClick={() => lock('Locked by you.')} title="Lock the vault now">
             <i className="pulse" />
             <span>Vault encrypted · Lock now</span>
           </button>
@@ -72,6 +73,7 @@ export function Shell({ route, children }: { route: string; children: ReactNode 
       <main className="main" id="main">
         {children}
       </main>
+      <Tour />
     </div>
   )
 }
@@ -94,8 +96,8 @@ function SyncLine() {
   const { cloudLinked } = useSession()
   if (!cloudEnabled) return null
   return cloudLinked ? (
-    <Link to="/app/profile/settings" className="sync-line ok"><Icon name="check" size={13} /> Synced across your devices</Link>
+    <Link to="/app/profile/settings" className="sync-line ok" data-tour="sync"><Icon name="check" size={13} /> Synced across your devices</Link>
   ) : (
-    <Link to="/app/profile/settings" className="sync-line warn"><Icon name="alert" size={13} /> Only on this device · Link it</Link>
+    <Link to="/app/profile/settings" className="sync-line warn" data-tour="sync"><Icon name="alert" size={13} /> Only on this device · Link it</Link>
   )
 }

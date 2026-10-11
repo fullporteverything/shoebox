@@ -856,3 +856,18 @@ input[type='date']::-webkit-calendar-picker-indicator { cursor: pointer; opacity
 .saved-counter { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; padding: 8px 14px; border-radius: 99px; font-size: 14px; background: color-mix(in srgb, var(--good) 10%, transparent); color: var(--ink-2); }
 .saved-counter > svg { color: var(--good); flex: none; }
 .saved-counter b { color: var(--good); font-variant-numeric: tabular-nums; }
+
+/* Security tour */
+.tour { position: fixed; inset: 0; z-index: 90; }
+.tour-scrim { position: absolute; inset: 0; background: color-mix(in srgb, #000 28%, transparent); animation: fade-in 0.25s ease both; }
+.tour-ring { position: fixed; border-radius: 14px; box-shadow: 0 0 0 3px var(--gold), 0 0 0 9999px color-mix(in srgb, #000 22%, transparent); pointer-events: none; transition: all 0.35s var(--ease-out); }
+.tour-card { position: fixed; padding: 18px; border-radius: var(--r-lg); background: var(--glass-solid); animation: tour-in 0.3s var(--ease-out) both; }
+.tour-top { display: flex; justify-content: space-between; align-items: center; }
+.tour-ico { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--gold-soft); color: var(--gold-ink); }
+.tour-card h3 { font-size: 17px; margin: 12px 0 6px; }
+.tour-card p { font-size: 14px; }
+.tour-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; gap: 8px; }
+@keyframes tour-in { from { opacity: 0; translate: 0 6px; } to { opacity: 1; translate: 0 0; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tour-card, .tour-scrim { animation: none; } .tour-ring { transition: none; } }
+.tour-scrim.clear { background: transparent; }

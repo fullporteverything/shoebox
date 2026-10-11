@@ -7,6 +7,7 @@ import { PBKDF2_ITERATIONS } from '../lib/crypto.js'
 import { sensors } from '../lib/sentinel.js'
 import type { SensorId } from '../lib/sentinel.js'
 import { useSession } from '../lib/session.js'
+import { startTour } from '../components/Tour.js'
 import type { Policy } from '../lib/vault.js'
 
 const sensorIcon: Record<SensorId, IconName> = { integrity: 'key', bruteforce: 'lock', injection: 'code', fingerprint: 'fingerprint', idle: 'clock', crosstab: 'tabs' }
@@ -39,7 +40,12 @@ export function Security() {
         eyebrow="Security center"
         title="Watching, so you don’t have to."
         sub="Your vault is encrypted on this device, and the sensors below watch for signs of a breach. If one fires, the response is automatic."
-        actions={<button className="btn" onClick={() => lock('Locked by you.')}><Icon name="lock" /> Lock now</button>}
+        actions={
+          <>
+            <button className="btn btn-ghost" onClick={startTour}><Icon name="sparkle" /> Take the tour</button>
+            <button className="btn" onClick={() => lock('Locked by you.')}><Icon name="lock" /> Lock now</button>
+          </>
+        }
       />
 
       <div className="split">

@@ -13,6 +13,7 @@ import type { TwoFactor } from './totp.js'
 import { deriveSecrets, sha256, unb64 } from './crypto.js'
 import { cloud, cloudEnabled, CloudError, describeDevice, isOk, rememberDevice } from './cloud.js'
 import type { Device, LoginResult, Membership, MyReview } from './cloud.js'
+import { usdRate } from './fx.js'
 
 export type LogEntry = { at: number; level: 'info' | 'alert' | 'lock' | 'shred'; sensor?: SensorId; text: string }
 export type Phase = 'signed_out' | 'two_factor' | 'unlocked' | 'locked' | 'shredded'
@@ -714,7 +715,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const updated = receipts.map((r) =>
         r.classification.source === 'you'
           ? r
-          : { ...r, classification: classify(r.extraction, p, { businessPct: r.businessPct, source: r.classification.source, usdAmount: r.usdAmount }) },
+          : { ...r, classification: classify(r.extraction, p, { businessPct: r.businessPct, source: r.classification.source, usdAmount: r.usdAmount, fx: r.fx }) },
       )
       for (const r of updated) await write((s) => vault.put(s, r.id, 'receipt', r))
       setReceipts(updated)
@@ -855,6 +856,32 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const res = await cloud.submitReview(tok, r)
     return 'status' in res
   }, [])
+
+  // Foreign receipts saved before automatic rates (or while offline) get one now.
+  const fxTried = useRef(new Set<string>())
+  useEffect(() => {
+    if (phase !== 'unlocked' || !profile) return
+    const todo = receipts.filter((r) => r.extraction.currency && r.extraction.currency !== 'USD' && r.usdAmount == null && r.extraction.usdTotal == null && !r.fx && !fxTried.current.has(r.id))
+    if (!todo.length) return
+    let live = true
+    void (async () => {
+      for (const r of todo) {
+        fxTried.current.add(r.id)
+        const fx = await usdRate(r.extraction.currency, r.extraction.date)
+        if (!live || !fx || !sessionRef.current) continue
+        const keep = r.classification.source === 'you' ? r.classification.category : undefined
+        await saveReceipt({
+          ...r, fx,
+          classification: classify(r.extraction, profileRef.current ?? profile, { override: keep, businessPct: r.businessPct, source: r.classification.source, usdAmount: r.usdAmount, fx }),
+          history: [...r.history, { at: Date.now(), what: `Converted to US dollars at the ${fx.source} for ${fx.date}` }],
+        })
+      }
+    })()
+    return () => {
+      live = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, receipts])
 
   // Founding-member status, fetched once the vault is linked.
   useEffect(() => {

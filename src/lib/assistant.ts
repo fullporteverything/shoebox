@@ -2,6 +2,7 @@ import type { Picture } from './tax/advisor.js'
 import { categoryById, RULES_REVIEWED } from './tax/rules.js'
 import { stateByCode } from './tax/states.js'
 import type { Profile, Receipt } from './types.js'
+import { usdOf } from './tax/advisor.js'
 
 const $ = (n: number) => '$' + Math.round(n).toLocaleString('en-US')
 
@@ -21,7 +22,7 @@ export function contextFor(profile: Profile, receipts: Receipt[], pic: Picture):
   receipts.forEach((r) => {
     const c = (byCat[r.classification.category] ??= { n: 0, paid: 0, ded: 0 })
     c.n++
-    c.paid += r.extraction.currency === 'USD' ? r.extraction.total : (r.usdAmount ?? r.extraction.usdTotal ?? 0)
+    c.paid += usdOf(r) ?? 0
     c.ded += r.classification.deductible
   })
   lines.push('Receipts by category: ' + (Object.entries(byCat).map(([k, v]) => `${categoryById[k as keyof typeof categoryById].label} ${v.n} items, paid ${$(v.paid)}, counted ${$(v.ded)}`).join('; ') || 'none') + '.')

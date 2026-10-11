@@ -9,6 +9,8 @@ import {
 import type { CategoryId } from './rules.js'
 import { stateByCode } from './states.js'
 import type { Classification, Extraction, Profile } from '../types.js'
+import { usdFigure } from '../fx.js'
+import type { Fx } from '../fx.js'
 
 export function keywordCategory(text: string): { id: CategoryId; hits: number } | null {
   const t = ' ' + text.toLowerCase() + ' '
@@ -25,7 +27,7 @@ const round = (n: number) => Math.round(n * 100) / 100
 export function classify(
   ex: Extraction,
   profile: Pick<Profile, 'state' | 'workType'>,
-  opts: { override?: CategoryId; businessPct?: number; source?: Classification['source']; usdAmount?: number | null } = {},
+  opts: { override?: CategoryId; businessPct?: number; source?: Classification['source']; usdAmount?: number | null; fx?: Fx | null } = {},
 ): Classification {
   const text = [ex.merchant, ex.city ?? '', ex.formType ?? '', ex.notes, ex.businessPurpose, ...ex.lineItems.map((l) => l.description)].join(' ')
   const kw = keywordCategory(text)
@@ -61,11 +63,11 @@ export function classify(
   const cat = categoryById[category]
   const reasons = [cat.rule]
   const flags: Classification['flags'] = []
-  // IRS amounts are in US dollars. Foreign-currency documents count only once
-  // there is a real USD figure (printed on the receipt or from the card
-  // statement); this never converts at a guessed rate.
+  // IRS amounts are in US dollars. A foreign-currency document counts at the
+  // statement figure, else the dollar amount printed on it, else the posted
+  // exchange rate for its date (see fx.ts).
   const foreign = !!ex.currency && ex.currency !== 'USD'
-  const usd = foreign ? (opts.usdAmount ?? ex.usdTotal ?? null) : ex.total
+  const { usd, from } = usdFigure(ex, opts.usdAmount, opts.fx)
   const total = Math.max(0, usd ?? 0)
   const businessPct = opts.businessPct ?? 100
   let deductible = total * cat.deductiblePct
@@ -100,9 +102,11 @@ export function classify(
   }
   if (cat.group === 'income') deductible = 0
   if (foreign && usd == null) {
-    flags.push({ level: 'warn', text: `This is in ${ex.currency}. Enter the US dollar amount from your card or bank statement so it can count. We don’t convert at a guessed rate.` })
+    flags.push({ level: 'warn', text: `This is in ${ex.currency}, and there’s no published exchange rate for it yet. Enter the US dollar amount from your card or bank statement so it can count.` })
+  } else if (from === 'fx' && opts.fx) {
+    reasons.push(`Converted at the ${opts.fx.source} for ${opts.fx.date}: 1 ${ex.currency} = $${opts.fx.rate.toFixed(4)}. If your card statement shows a different dollar amount, enter it; that’s the more exact figure.`)
   } else if (foreign) {
-    reasons.push(`Using the US dollar amount ${opts.usdAmount != null ? 'you entered' : 'printed on the receipt'} for this ${ex.currency} purchase.`)
+    reasons.push(`Using the US dollar amount ${from === 'you' ? 'you entered' : 'printed on the receipt'} for this ${ex.currency} purchase.`)
   }
   if (!ex.date) flags.push({ level: 'warn', text: 'No date found. Add one so this lands in the right tax year.' })
   if (confidence < 0.6) flags.push({ level: 'warn', text: 'Low confidence. Check the category before you confirm.' })

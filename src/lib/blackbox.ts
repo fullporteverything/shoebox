@@ -16,6 +16,7 @@ import { zip } from './zip.js'
 import type { ZipEntry } from './zip.js'
 import { categoryById } from './tax/rules.js'
 import type { IncomeEntry, Profile, Receipt, TripLog } from './types.js'
+import { usdOf } from './tax/advisor.js'
 
 const MAGIC = 'SHOEBOX-BLACKBOX/1'
 // Vercel functions accept ~4.5 MB bodies; base64 adds a third. Parts stay under it.
@@ -72,7 +73,7 @@ export function buildArchive(input: { profile: Profile | null; receipts: Receipt
     name: 'receipts.csv',
     data: csv([
       ['date', 'merchant', 'category', 'form', 'total', 'currency', 'usd_amount', 'deductible', 'business_pct', 'status', 'business_purpose', 'file'],
-      ...receipts.map((r) => [r.extraction.date, r.extraction.merchant, categoryById[r.classification.category]?.label, categoryById[r.classification.category]?.form, r.extraction.total, r.extraction.currency, r.usdAmount ?? r.extraction.usdTotal ?? '', r.classification.deductible, r.businessPct, r.status, r.extraction.businessPurpose, r.image ? `documents/${r.extraction.date || 'undated'}-${slug(r.extraction.merchant)}-${r.id}.jpg` : '']),
+      ...receipts.map((r) => [r.extraction.date, r.extraction.merchant, categoryById[r.classification.category]?.label, categoryById[r.classification.category]?.form, r.extraction.total, r.extraction.currency, usdOf(r) ?? '', r.classification.deductible, r.businessPct, r.status, r.extraction.businessPurpose, r.image ? `documents/${r.extraction.date || 'undated'}-${slug(r.extraction.merchant)}-${r.id}.jpg` : '']),
     ]),
   })
   files.push({ name: 'income.csv', data: csv([['date', 'source', 'type', 'amount', 'federal_withheld'], ...incomes.map((i) => [i.date, i.source, i.type, i.amount, i.withheld])]) })

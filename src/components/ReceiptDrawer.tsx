@@ -21,7 +21,7 @@ export function ReceiptDrawer({ receipt, onClose }: { receipt: Receipt; onClose:
   const recompute = (patch: Partial<Receipt>, override?: CategoryId) => {
     const next = { ...r, ...patch }
     const keepOverride = override ?? (next.classification.source === 'you' ? next.classification.category : undefined)
-    next.classification = classify(next.extraction, profile, { override: keepOverride, businessPct: next.businessPct, source: r.classification.source === 'you' ? 'ai' : r.classification.source, usdAmount: next.usdAmount })
+    next.classification = classify(next.extraction, profile, { override: keepOverride, businessPct: next.businessPct, source: r.classification.source === 'you' ? 'ai' : r.classification.source, usdAmount: next.usdAmount, fx: next.fx })
     setR(next)
   }
 
@@ -93,14 +93,22 @@ export function ReceiptDrawer({ receipt, onClose }: { receipt: Receipt; onClose:
             id="rd-usd"
             className="input"
             inputMode="decimal"
-            placeholder={r.extraction.usdTotal != null ? `Receipt shows $${r.extraction.usdTotal}` : 'From your card or bank statement'}
+            placeholder={r.extraction.usdTotal != null ? `Receipt shows $${r.extraction.usdTotal}` : r.fx ? `$${(r.extraction.total * r.fx.rate).toFixed(2)} at the exchange rate` : 'From your card or bank statement'}
             value={r.usdAmount ?? ''}
             onChange={(e) => {
               const v = e.target.value.trim()
               recompute({ usdAmount: v === '' ? null : Math.max(0, parseFloat(v) || 0) })
             }}
           />
-          <span className="hint">The IRS needs amounts in US dollars. We use your statement amount, or the dollar amount printed on the receipt, and never a guessed rate.</span>
+          <span className="hint">
+            {r.usdAmount != null
+              ? 'Using the amount you entered. Clear it to go back to the exchange rate.'
+              : r.extraction.usdTotal != null
+                ? 'Using the dollar amount printed on the receipt.'
+                : r.fx
+                  ? `Converted automatically at the ${r.fx.source} for ${r.fx.date} (1 ${r.extraction.currency} = $${r.fx.rate.toFixed(4)}). Your card statement’s figure includes the bank’s rate and fees, so it’s more exact; enter it if you have it.`
+                  : `No published rate for ${r.extraction.currency}, so enter the amount from your card or bank statement.`}
+          </span>
         </div>
       )}
 

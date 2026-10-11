@@ -100,6 +100,9 @@ Your vault is encrypted in your browser with AES-256-GCM before it goes anywhere
 
 Alongside the ciphertext our servers keep what's needed to run your account: your email address, the salt and wrapped key, your security policy, a list of the devices signed in to your account (browser and operating system, time zone, and when each was first and last used), sign-in lockout counters, and, while two-factor is on, your authenticator secret and hashed recovery codes so a sign-in can't skip the code. We keep this until you delete your account or a shred removes it. Signing a device out erases that device's copy the next time it comes online.
 
+## Exchange rates
+For a receipt in another currency, Shoebox looks up the European Central Bank's published exchange rate for the receipt's date through the Frankfurter API (frankfurter.dev). Only the currency code and the date are sent: never the amount, the merchant or anything about you.
+
 ## How documents are read (AI processing)
 When AI reading is on, each document image is downscaled and stripped of photo metadata on your device, then sent over an encrypted connection to [our server and] our AI provider, [Anthropic, PBC]. The provider uses it only to return the extracted fields. [Confirm the provider's data retention and no-training terms in your commercial agreement, and state them here precisely.] If you'd rather not use AI, you can enter details by hand.
 

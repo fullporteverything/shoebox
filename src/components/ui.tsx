@@ -18,17 +18,18 @@ export const paid = (r: Receipt) => {
   return usd != null ? money(usd) : `${r.extraction.total.toFixed(2)} ${r.extraction.currency}`
 }
 
-export function Link({ to, children, className, ...rest }: { to: string; children: ReactNode; className?: string } & Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'>) {
+export function Link({ to, children, className, onClick, ...rest }: { to: string; children: ReactNode; className?: string } & Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'>) {
   return (
     <a
+      {...rest}
       href={'#' + to}
       className={className}
       onClick={(e) => {
-        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
+        onClick?.(e)
+        if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
         e.preventDefault()
         navigate(to)
       }}
-      {...rest}
     >
       {children}
     </a>

@@ -8,11 +8,11 @@ import { categoryById } from './rules.js'
 import { estimate, homeOfficeDeduction, mileageDeduction, savingsFor } from './estimate.js'
 import type { Estimate } from './estimate.js'
 import { taxTableFor } from './y2026.js'
+import { usdFigure } from '../fx.js'
 import type { DayKind, IncomeEntry, IncomeType, Plan, Profile, Receipt, TripLog } from '../types.js'
 import { emptyPlan } from '../types.js'
 
-export const usdOf = (r: Receipt): number | null =>
-  r.extraction.currency && r.extraction.currency !== 'USD' ? (r.usdAmount ?? r.extraction.usdTotal ?? null) : r.extraction.total
+export const usdOf = (r: Receipt): number | null => usdFigure(r.extraction, r.usdAmount, r.fx).usd
 
 // ---------- income ----------
 

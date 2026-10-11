@@ -7,6 +7,7 @@ import { AnalyzeError, analyze, detectEngine } from '../lib/ai.js'
 import type { Engine } from '../lib/ai.js'
 import { randomId } from '../lib/crypto.js'
 import { prepareImage } from '../lib/image.js'
+import { usdRate } from '../lib/fx.js'
 import { makeSamples } from '../lib/samples.js'
 import { useSession } from '../lib/session.js'
 import { classify, keywordCategory } from '../lib/tax/classify.js'
@@ -82,13 +83,16 @@ export function Inbox() {
   const patch = (key: string, p: Partial<Item>) => setItems((xs) => xs.map((x) => (x.key === key ? { ...x, ...p } : x)))
 
   const file = async (ex: Extraction, item: Item, source: 'ai' | 'rules' | 'you', override?: CategoryId) => {
+    // Foreign receipt with no dollar figure on it: look up the rate for its date.
+    const fx = ex.currency && ex.currency !== 'USD' && ex.usdTotal == null ? await usdRate(ex.currency, ex.date) : null
     const r: Receipt = {
       id: randomId(),
       createdAt: Date.now(),
       fileName: item.fileName,
       image: item.dataUrl,
       extraction: ex,
-      classification: classify(ex, profile, { source, override }),
+      classification: classify(ex, profile, { source, override, fx }),
+      fx,
       status: 'needs_review',
       businessPct: 100,
       memo: '',

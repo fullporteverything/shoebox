@@ -107,6 +107,7 @@ export type Receipt = {
   status: 'needs_review' | 'confirmed'
   businessPct: number // 0..100, share used for business
   usdAmount?: number | null // the person's own USD figure for a foreign-currency document
+  fx?: { rate: number; date: string; source: string } | null // exchange rate used when there's no USD figure
   memo: string
   history: { at: number; what: string }[]
 }

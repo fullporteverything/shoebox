@@ -929,3 +929,18 @@ input[type='date']::-webkit-calendar-picker-indicator { cursor: pointer; opacity
 .free-list li svg { color: var(--good); flex: none; margin-top: 2px; }
 .free-list.plain li { display: list-item; list-style: disc; margin-left: 18px; color: var(--ink-2); }
 .pass-gate { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 18px 20px; }
+
+/* ---------- Bandit, the mascot ---------- */
+/* Idle motion only when the viewer hasn't asked for less. */
+.bandit { display: block; flex: none; overflow: visible; }
+@media (prefers-reduced-motion: no-preference) {
+  .bandit:not(.still) .b-eyes { transform-box: fill-box; transform-origin: center; animation: bandit-blink 6s infinite; }
+  .bandit:not(.still) .b-tail { transform-box: view-box; transform-origin: 160px 222px; animation: bandit-tail 3.4s ease-in-out infinite alternate; }
+  .bandit:not(.still) .b-wave { transform-box: view-box; transform-origin: 104px 186px; animation: bandit-wave 1.8s ease-in-out infinite; }
+  .bandit:not(.still) .b-zzz { animation: bandit-zzz 3.2s ease-in-out infinite; }
+}
+@keyframes bandit-blink { 0%, 92%, 100% { transform: scaleY(1); } 94% { transform: scaleY(0.12); } }
+@keyframes bandit-tail { from { transform: rotate(-3deg); } to { transform: rotate(4deg); } }
+@keyframes bandit-wave { 0%, 60%, 100% { transform: rotate(0); } 15%, 45% { transform: rotate(-9deg); } 30% { transform: rotate(5deg); } }
+@keyframes bandit-zzz { 0%, 100% { opacity: 1; translate: 0 0; } 50% { opacity: 0.55; translate: 2px -5px; } }
+.empty .bandit { margin: 0 auto 12px; }

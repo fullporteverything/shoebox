@@ -46,6 +46,23 @@ export async function deriveKek(password: string, salt: Uint8Array, iterations =
   )
 }
 
+// One PBKDF2 run gives both the KEK (same bits deriveKek produces, so existing
+// vaults still open) and a sign-in proof for the server. The proof goes
+// through HKDF, so knowing it reveals nothing about the KEK.
+export async function deriveSecrets(password: string, salt: Uint8Array, iterations = PBKDF2_ITERATIONS): Promise<{ kek: CryptoKey; auth: string }> {
+  const base = await subtle().importKey('raw', enc.encode(password.normalize('NFKC')), 'PBKDF2', false, ['deriveBits'])
+  const bits = new Uint8Array(await subtle().deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: salt as BufferSource, iterations }, base, 256))
+  const kek = await subtle().importKey('raw', bits as BufferSource, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])
+  const hk = await subtle().importKey('raw', bits as BufferSource, 'HKDF', false, ['deriveBits'])
+  bits.fill(0)
+  const auth = await subtle().deriveBits(
+    { name: 'HKDF', hash: 'SHA-256', salt: enc.encode('shoebox/v1') as BufferSource, info: enc.encode('server-auth') as BufferSource },
+    hk,
+    256,
+  )
+  return { kek, auth: b64(auth) }
+}
+
 export type DataKeys = { dek: CryptoKey; mac: CryptoKey }
 
 export async function importDataKeys(raw: Uint8Array): Promise<DataKeys> {

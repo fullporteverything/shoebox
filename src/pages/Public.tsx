@@ -5,6 +5,8 @@ import { Link, Money } from '../components/ui.js'
 import { legalDocs } from '../legal/content.js'
 import { RULES_REVIEWED } from '../lib/tax/rules.js'
 import { useSession } from '../lib/session.js'
+import { ReviewCarousel } from '../components/Reviews.js'
+import { FoundingBand } from '../components/Founding.js'
 
 export function PublicFrame({ children }: { children: ReactNode }) {
   const { phase } = useSession()
@@ -98,8 +100,8 @@ export function Landing() {
             <span className="word ink-gold" style={{ ['--i' as string]: 5 }}>like a pro.</span>
           </h1>
           <p className="lead rise" style={{ animationDelay: '0.45s' }}>
-            Snap a receipt, drop in a bill or a 1099. Shoebox reads it, files it under the right Schedule C line or deduction, applies the limits, and flags
-            what your state does differently.
+            W-2, side hustle or full-time creator: snap a receipt, drop in a bill or a 1099. Shoebox reads it, files it under the right Schedule C line or
+            deduction, applies the limits, and flags what your state does differently.
           </p>
           <div className="hero-cta rise" style={{ animationDelay: '0.55s' }}>
             <Link to="/signup" className="btn btn-gold btn-lg">Start your vault <Icon name="arrowRight" /></Link>
@@ -138,6 +140,10 @@ export function Landing() {
           ))}
         </div>
       </section>
+
+      <ReviewCarousel />
+
+      <FoundingBand />
 
       <section className="wrap section" style={{ paddingTop: 10 }}>
         <div className="card sec-band glow-border">

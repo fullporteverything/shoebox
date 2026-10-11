@@ -36,6 +36,8 @@ The Service includes security features that may **permanently destroy your store
 ## 5. Your content
 You keep all rights to the documents and information you upload ("Your Content"). You give us a limited license to process Your Content only to provide the Service to you, as described in our Privacy Policy. You confirm you have the right to upload Your Content and that it doesn't violate anyone's rights or the law.
 
+**Reviews.** If you submit a review, you give us a non-exclusive, royalty-free license to show it, with the display name and description you chose, on the Service and in our marketing. Reviews must reflect your own honest experience. We publish or decline reviews based on content (spam, abuse, personal information, or not about Shoebox), never on rating, and we don't pay or reward anyone for a review. You can edit your review at any time; deleting your account removes it.
+
 ## 6. AI features
 Some features send document images to a third-party AI provider to read them. AI output can be inaccurate. Review every extracted amount, date and category before you confirm it. See the AI and Tax Disclaimer.
 
@@ -48,7 +50,9 @@ You agree not to:
 - break any law, including tax, privacy and export laws.
 
 ## 8. Fees
-[If the Service is paid: describe plans, billing cycle, renewals, cancellation, refunds and taxes here. Automatic-renewal laws in several states require specific disclosures and an easy online cancellation.]
+Organizing documents, the tax map, savings scans, security features, sync and exporting your data are free. We plan to offer an optional paid Tax Year Pass. Its price, billing terms, renewal and cancellation terms will be shown before you buy, and you'll be able to cancel online. [Add full billing, renewal, refund and tax terms before the pass launches; several states' automatic-renewal laws require specific disclosures.]
+
+**Founding members.** If your account was created before January 1, 2027, you're a founding member: when the Tax Year Pass launches, your price for it is $39 per tax year instead of the standard $59, for as long as you keep the pass without a gap. The founding price ends if you cancel and later restart, or if your account is deleted or shredded. We'll honor it even if the standard price goes up.
 
 ## 9. Changes and termination
 We may change the Service or these Terms. If a change is material, we will notify you in the app or by email at least [30] days before it takes effect, and you can stop using the Service before then. You may close your account at any time from your Profile; closing it deletes your vault from that device. We may suspend or end access if you breach these Terms or if required by law.
@@ -84,6 +88,8 @@ ${COMPANY}, [mailing address]. ${CONTACT}.
 **Information you give us:** your email address, name, state, filing status, work type and business name; and the documents and notes you upload.
 
 **Information created when you use Shoebox:** categories, amounts and notes; and a security log of events such as unlocks, lockouts and sensor alerts. These are stored encrypted with your documents.
+
+**Reviews:** if you leave one, we keep its rating, text, the display name and description you chose, and its approval status. Approved reviews are public. Reviews are not encrypted, because they're meant to be read; don't include anything private. Your email is never shown.
 
 **Technical information:** to run the website, our hosting provider processes standard request data such as IP address, browser type and request time, as described in its own policy. [List any analytics tool here, or state that none is used.]
 

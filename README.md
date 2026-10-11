@@ -80,3 +80,12 @@ src/lib/tax/             categories, state notes, classifier (+ tests)
 src/legal/content.ts     legal templates
 src/pages/, components/  UI
 ```
+
+## Moderating reviews
+
+New and edited reviews wait as `pending`. To publish one, open Supabase →
+Table Editor → schema `shoebox` → `reviews` and set `status` to `approved`
+(or `rejected`). Decide on content only: spam, abuse, personal details, or
+not about Shoebox. Never reject a review for its rating; the FTC's rule on
+consumer reviews (16 CFR 465) prohibits suppressing negative reviews, and
+the homepage average counts every approved review.

@@ -86,6 +86,16 @@ export type Pull =
 
 export const isOk = (r: LoginResult): r is LoginOk => 'token' in r
 
+export type PublicReview = { rating: number; body: string; name: string; role: string; month: string }
+export type ReviewSummary = { count: number; average: number | null; reviews: PublicReview[] }
+export type MyReview = { rating: number; body: string; display_name: string; role: string; status: 'pending' | 'approved' | 'rejected' } | null
+export type Membership = { joined_at: number; founding: boolean; number: number | null; closes_at: number }
+
+// The founding-member window. Mirrors the cutoff in the reviews/founders migration.
+export const FOUNDING_CLOSES = Date.UTC(2027, 0, 1)
+export const PASS_PRICE = 59
+export const FOUNDING_PRICE = 39
+
 // This browser's entry in the account's device list. The id is assigned by the
 // server at first sign-in and remembered here so the list doesn't grow a new
 // row every time.
@@ -141,6 +151,11 @@ export const cloud = {
   shred: (token: string, incident: unknown) => rpc<unknown>('shoebox_shred', { p_token: token, p_incident: incident }),
   remove: (token: string) => rpc<null>('shoebox_delete', { p_token: token }),
   devices: (token: string) => rpc<Device[]>('shoebox_devices', { p_token: token }),
+  reviews: () => rpc<ReviewSummary>('shoebox_reviews', {}),
+  myReview: (token: string) => rpc<MyReview>('shoebox_my_review', { p_token: token }),
+  submitReview: (token: string, r: { rating: number; body: string; name: string; role: string }) =>
+    rpc<{ status: 'pending' } | { error: 'invalid' }>('shoebox_submit_review', { p_token: token, p_rating: r.rating, p_body: r.body, p_name: r.name, p_role: r.role }),
+  membership: (token: string) => rpc<Membership>('shoebox_membership', { p_token: token }),
   signOut: (token: string, opts: { device?: string; others?: boolean } = {}) =>
     rpc<{ signed_out: number }>('shoebox_sign_out', { p_token: token, p_device: opts.device ?? null, p_others: !!opts.others }),
 }

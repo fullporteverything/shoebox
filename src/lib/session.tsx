@@ -12,7 +12,7 @@ import { newRecoveryCodes, newSecret, normalizeRecovery, otpauthUri, verifyTotp 
 import type { TwoFactor } from './totp.js'
 import { deriveSecrets, sha256, unb64 } from './crypto.js'
 import { cloud, cloudEnabled, CloudError, describeDevice, isOk, rememberDevice } from './cloud.js'
-import type { Device, LoginResult } from './cloud.js'
+import type { Device, LoginResult, Membership, MyReview } from './cloud.js'
 
 export type LogEntry = { at: number; level: 'info' | 'alert' | 'lock' | 'shred'; sensor?: SensorId; text: string }
 export type Phase = 'signed_out' | 'two_factor' | 'unlocked' | 'locked' | 'shredded'
@@ -60,6 +60,9 @@ type Ctx = {
   listDevices: () => Promise<Device[]>
   signOutDevice: (id: string) => Promise<void>
   signOutOtherDevices: () => Promise<number>
+  membership: Membership | null
+  myReview: () => Promise<MyReview>
+  submitReview: (r: { rating: number; body: string; name: string; role: string }) => Promise<boolean>
 }
 
 const SessionCtx = createContext<Ctx | null>(null)
@@ -98,6 +101,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // PBKDF2 doesn't run twice.
   const cloudPendingRef = useRef<{ email: string; ticket: string; kek: CryptoKey; auth: string } | null>(null)
   const [cloudLinked, setCloudLinked] = useState(false)
+  const [membership, setMembership] = useState<Membership | null>(null)
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [tf, setTf] = useState<TwoFactor | null>(null)
   const logRef = useRef<LogEntry[]>([])
@@ -137,6 +141,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     pendingRef.current = null
     cloudPendingRef.current = null
     setCloudLinked(false)
+    setMembership(null)
     if (syncTimer.current) clearTimeout(syncTimer.current)
     setTf(null)
     setProfile(null)
@@ -810,6 +815,29 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return r.signed_out
   }, [addLog])
 
+  const myReview = useCallback(async () => {
+    const tok = sessionRef.current?.cloud?.token
+    return tok ? cloud.myReview(tok) : null
+  }, [])
+
+  const submitReview = useCallback(async (r: { rating: number; body: string; name: string; role: string }) => {
+    const tok = sessionRef.current?.cloud?.token
+    if (!tok) return false
+    const res = await cloud.submitReview(tok, r)
+    return 'status' in res
+  }, [])
+
+  // Founding-member status, fetched once the vault is linked.
+  useEffect(() => {
+    const tok = sessionRef.current?.cloud?.token
+    if (phase !== 'unlocked' || !cloudLinked || !tok) return
+    let live = true
+    cloud.membership(tok).then((m) => live && setMembership(m)).catch(() => undefined)
+    return () => {
+      live = false
+    }
+  }, [phase, cloudLinked])
+
   const acknowledgeIncident = useCallback(() => {
     setIncident(null)
     setPhase('signed_out')
@@ -869,12 +897,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       phase, email, profile, receipts, incomes, tripLogs, log, policy, incident, toasts, toast, dismissToast, signUp, signIn, signOut, lock,
       verifySecondFactor, cancelSecondFactor, twoFactor, beginTwoFactor, confirmTwoFactor, disableTwoFactor, regenerateRecovery,
       saveReceipt, deleteReceipt, saveProfile, savePlan, saveIncome, deleteIncome, saveTripLog, savePolicy, changePassword, shredNow, tamperDrill,
-      deleteAccount, acknowledgeIncident, cloudLinked, listDevices, signOutDevice, signOutOtherDevices,
+      deleteAccount, acknowledgeIncident, cloudLinked, listDevices, signOutDevice, signOutOtherDevices, membership, myReview, submitReview,
     }),
     [phase, email, profile, receipts, incomes, tripLogs, log, policy, incident, toasts, toast, dismissToast, signUp, signIn, signOut, lock,
       verifySecondFactor, cancelSecondFactor, twoFactor, beginTwoFactor, confirmTwoFactor, disableTwoFactor, regenerateRecovery,
       saveReceipt, deleteReceipt, saveProfile, savePlan, saveIncome, deleteIncome, saveTripLog, savePolicy, changePassword, shredNow, tamperDrill,
-      deleteAccount, acknowledgeIncident, cloudLinked, listDevices, signOutDevice, signOutOtherDevices],
+      deleteAccount, acknowledgeIncident, cloudLinked, listDevices, signOutDevice, signOutOtherDevices, membership, myReview, submitReview],
   )
   return <SessionCtx.Provider value={value}>{children}</SessionCtx.Provider>
 }

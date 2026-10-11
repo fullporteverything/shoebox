@@ -761,3 +761,36 @@ input[type='date']::-webkit-calendar-picker-indicator { cursor: pointer; opacity
 .device-main { flex: 1; min-width: 0; }
 .device-name { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 600; }
 .device-meta { font-size: 12.5px; margin-top: 2px; overflow-wrap: anywhere; }
+
+/* Reviews */
+.stars { display: inline-flex; gap: 2px; vertical-align: -3px; }
+.stars svg { fill: color-mix(in srgb, var(--ink) 16%, transparent); }
+.stars svg.on { fill: var(--gold); }
+.reviews-sum { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; }
+.review-stage { max-width: 760px; margin: 0 auto; padding: clamp(22px, 4vw, 40px); text-align: center; }
+.review { margin: 0; animation: review-in 0.5s var(--ease-out) both; }
+.review blockquote { margin: 14px 0 16px; font-family: var(--font-display); font-size: clamp(19px, 2.4vw, 24px); line-height: 1.4; overflow-wrap: anywhere; }
+.review figcaption { font-size: 14px; color: var(--ink-2); }
+.review-nav { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 20px; }
+.review-nav .flip { transform: scaleX(-1); }
+.review-dots { display: flex; gap: 6px; }
+.review-dots button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; background: color-mix(in srgb, var(--ink) 18%, transparent); transition: background 0.2s, transform 0.2s; }
+.review-dots button.on { background: var(--gold); transform: scale(1.25); }
+@keyframes review-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.star-pick { display: flex; gap: 4px; }
+.star-pick button { border: 0; background: none; padding: 2px; cursor: pointer; border-radius: 8px; }
+.star-pick svg { fill: color-mix(in srgb, var(--ink) 16%, transparent); transition: fill 0.15s, transform 0.15s; }
+.star-pick button.on svg { fill: var(--gold); }
+.star-pick button:hover svg { transform: scale(1.12); }
+.nudge { display: flex; align-items: center; gap: 14px; margin-top: 16px; padding: 14px 16px; flex-wrap: wrap; }
+.nudge > svg { color: var(--gold-ink); flex: none; }
+
+/* Founding members */
+.founding { display: grid; grid-template-columns: 1.6fr 1fr; gap: clamp(20px, 4vw, 48px); align-items: center; padding: clamp(22px, 4vw, 44px); }
+.founding h2 { font-size: clamp(26px, 3.2vw, 36px); margin-top: 10px; }
+.founding-cta { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.founding-price { font-family: var(--font-display); font-size: 44px; line-height: 1; }
+.founding-price .was { font-size: 24px; color: var(--ink-3); text-decoration: line-through; }
+.founding-price small { display: block; font-family: var(--font-ui); font-size: 13px; color: var(--ink-2); margin-top: 6px; }
+@media (max-width: 760px) { .founding { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .review { animation: none; } }

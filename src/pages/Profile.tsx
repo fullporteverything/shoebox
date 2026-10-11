@@ -11,6 +11,8 @@ import { useSession } from '../lib/session.js'
 import { states } from '../lib/tax/states.js'
 import type { FilingStatus, Profile as P, WorkType } from '../lib/types.js'
 import { Select } from '../components/Select.js'
+import { ReviewCard } from '../components/Reviews.js'
+import { FoundingCard } from '../components/Founding.js'
 
 function TwoFactorCard() {
   const { twoFactor, disableTwoFactor, regenerateRecovery, toast } = useSession()
@@ -270,6 +272,8 @@ export function Profile({ tab }: { tab: 'profile' | 'settings' }) {
           </form>
         </div>
         <div className="stack">
+          <FoundingCard />
+          <ReviewCard />
           <div className="card rise">
             <div className="card-head"><h2>Security settings</h2></div>
             <p className="muted" style={{ fontSize: 14 }}>Two-factor sign-in, the devices signed in to this account, password, agreements and account deletion are on the Settings tab.</p>

@@ -9,6 +9,7 @@ import type { CategoryId } from '../lib/tax/rules.js'
 import { stateByCode } from '../lib/tax/states.js'
 import { buildPicture } from '../lib/tax/advisor.js'
 import type { Receipt } from '../lib/types.js'
+import { ReviewNudge } from '../components/Reviews.js'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -100,6 +101,8 @@ export function Overview() {
           <div className="d">{pic?.est ? `${pic.opportunities.length} ways to save · open the assistant` : `Estimates cover tax year 2026`}</div>
         </Link>
       </div>
+
+      <ReviewNudge receiptCount={receipts.length} />
 
       <div className="split" style={{ marginTop: 16 }}>
         <div className="stack">

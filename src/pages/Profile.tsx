@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import type { Device } from '../lib/cloud.js'
 import { Icon } from '../components/icons.js'
 import { navigate } from '../lib/router.js'
@@ -189,6 +189,13 @@ export function Profile({ tab }: { tab: 'profile' | 'settings' }) {
   const [pwMsg, setPwMsg] = useState('')
   const [busy, setBusy] = useState(false)
   const [del, setDel] = useState('')
+  // Follow changes synced from another device, unless the form has unsaved edits.
+  const shown = useRef(profile)
+  useEffect(() => {
+    const before = JSON.stringify(shown.current)
+    shown.current = profile
+    setP((cur) => (cur && JSON.stringify(cur) !== before ? cur : profile))
+  }, [profile])
   if (!profile || !p) return null
   const dirty = JSON.stringify(p) !== JSON.stringify(profile)
   const strength = passwordStrength(next)

@@ -472,7 +472,8 @@ export async function enroll(s: Session, auth: string, twoFactor: { secret: stri
   })
 }
 
-export type SyncResult = { pulled: boolean; policy?: Policy; shredded?: boolean }
+// pulled lists the kinds of records that arrived from another device.
+export type SyncResult = { pulled: string[]; policy?: Policy; shredded?: boolean }
 
 // Pushes local changes and pulls remote ones. Safe to call often.
 export function sync(s: Session): Promise<SyncResult> {
@@ -480,19 +481,16 @@ export function sync(s: Session): Promise<SyncResult> {
 }
 
 async function syncLocked(s: Session): Promise<SyncResult> {
-  if (!s.cloud) return { pulled: false }
+  if (!s.cloud) return { pulled: [] }
   const token = s.cloud.token
-  let pulled = false
+  const pulled: string[] = []
   for (let attempt = 0; attempt < 6; attempt++) {
     const { acct, rows } = await readState(s.email)
     if (!acct?.wrapped || !acct.sync) return { pulled }
     const sync = acct.sync
     if (!sync.dirty.length) {
       const p = await cloud.pull(token, sync.rev)
-      if (p.index) {
-        await applyRemote(s, acct, rows, p)
-        pulled = true
-      }
+      if (p.index) pulled.push(...(await applyRemote(s, acct, rows, p)))
       const policy = { ...defaultPolicy, ...(p.policy as Partial<Policy>) }
       if (JSON.stringify(policy) !== JSON.stringify(acct.policy)) {
         const a = await getAccount(s.email)
@@ -541,15 +539,12 @@ async function syncLocked(s: Session): Promise<SyncResult> {
     const fresh = await readState(s.email)
     if (!fresh.acct?.sync) return { pulled }
     const p = await cloud.pull(token, fresh.acct.sync.rev)
-    if (p.index) {
-      await applyRemote(s, fresh.acct, fresh.rows, p)
-      pulled = true
-    }
+    if (p.index) pulled.push(...(await applyRemote(s, fresh.acct, fresh.rows, p)))
   }
   return { pulled }
 }
 
-async function applyRemote(s: Session, acct: Account, rows: Row[], p: Extract<Pull, { index_mac: string }>) {
+async function applyRemote(s: Session, acct: Account, rows: Row[], p: Extract<Pull, { index_mac: string }>): Promise<string[]> {
   if (!(await verify(s.keys.mac, indexMessage(indexRows(p.index)), p.index_mac))) {
     throw new VaultError('tampered', 'The server’s copy of the vault doesn’t match its signature. It was changed by someone without your key.')
   }
@@ -585,6 +580,9 @@ async function applyRemote(s: Session, acct: Account, rows: Row[], p: Extract<Pu
     for (const r of next) if (local.get(r.id)?.h !== r.h) store.put(r)
     t.objectStore('accounts').put(acct)
   })
+  const kinds = new Set(p.changed.filter((r) => !dirty.has(r.id) && local.get(r.id)?.h !== r.h).map((r) => r.kind))
+  for (const r of rows) if (!keep.has(r.id)) kinds.add(r.kind)
+  return [...kinds]
 }
 
 export function isSessionEnded(e: unknown) {

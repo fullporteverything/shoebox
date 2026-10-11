@@ -472,9 +472,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         return
       }
       if (r.policy) setPolicyState(r.policy)
-      if (r.pulled) {
+      if (r.pulled.length) {
         hydrate(await vault.decryptAll(s))
-        toast('info', 'Updated with changes from another device.')
+        if (r.pulled.some((k) => k !== 'log' && k !== 'canary')) toast('info', 'Updated with changes from another device.')
       }
     } catch (e) {
       if (sessionRef.current !== s) return

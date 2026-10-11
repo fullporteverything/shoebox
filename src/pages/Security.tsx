@@ -91,9 +91,9 @@ export function Security() {
             <div className="card-head"><h2>Policy</h2></div>
             <div className="stack" style={{ gap: 18 }}>
               <div className="field">
-                <span className="label">Shred after this many wrong passwords</span>
+                <span className="label">Shred after this many wrong two-factor codes</span>
                 <Seg label="Wipe after" value={policy.wipeAfter} onChange={(v) => set({ wipeAfter: v })} options={[{ value: 5, label: '5' }, { value: 10, label: '10' }, { value: 0, label: 'Never' }]} />
-                <span className="hint">Lockouts start after 3 misses and double each time, up to an hour.</span>
+                <span className="hint">Counts wrong codes entered after the right password, the sign that someone has it. Wrong passwords alone only lock the account: 3 misses, then waits that double up to an hour. Without two-factor, the limit applies to this device’s offline copy.</span>
               </div>
               <div className="field">
                 <span className="label">Lock when idle for</span>

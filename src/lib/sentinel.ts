@@ -5,10 +5,9 @@
 //   lock     -> drop the keys from memory and ask for the password again
 //   shred    -> crypto-shred the vault (see vault.shred)
 //
-// Client-side sensors can only see what this browser sees. They catch storage
-// tampering, password guessing and injected code; they cannot see a stolen
-// server database, because there isn't one yet. docs/SECURITY.md covers the
-// server-side half.
+// These sensors see what this browser sees. Sign-in lockouts, two-factor and
+// remote sign-out are enforced by the server (supabase/migrations); a shred
+// here also shreds the server copy. docs/SECURITY.md has the full model.
 
 export type Severity = 'alert' | 'lock' | 'shred'
 
@@ -16,9 +15,9 @@ export type SensorId = 'integrity' | 'bruteforce' | 'injection' | 'fingerprint' 
 
 export const sensors: { id: SensorId; name: string; watches: string; action: (strict: boolean) => Severity | 'policy' }[] = [
   { id: 'integrity', name: 'Vault integrity', watches: 'Every record is sealed with AES-GCM and the index is signed. A canary record must decrypt to a known value. Any edit, swap or deletion outside the app trips it, checked at unlock and every 45 seconds.', action: () => 'shred' },
-  { id: 'bruteforce', name: 'Password guessing', watches: 'Wrong passwords trigger lockouts that grow each time. Past your wipe limit, the vault shreds itself.', action: () => 'policy' },
+  { id: 'bruteforce', name: 'Password guessing', watches: 'Wrong passwords trigger lockouts that grow each time, enforced by the server. If the right password is followed by wrong two-factor codes past your wipe limit, the vault shreds itself everywhere.', action: () => 'policy' },
   { id: 'injection', name: 'Code injection', watches: 'Watches the page for scripts, frames or embeds added after it loads, such as from a malicious extension or an injected script.', action: (strict) => (strict ? 'shred' : __ARTIFACT__ ? 'alert' : 'lock') },
-  { id: 'fingerprint', name: 'New device signature', watches: 'Compares the browser and time zone with your last unlock. A change is flagged so you can tell if it wasn’t you.', action: () => 'alert' },
+  { id: 'fingerprint', name: 'New device signature', watches: 'Flags the first sign-in from a new device, and a change of browser or time zone since your last unlock, so you can tell if it wasn’t you. Every device is listed in Profile → Settings.', action: () => 'alert' },
   { id: 'idle', name: 'Idle lock', watches: 'Forgets the keys after a period with no activity, so an unattended screen can’t be read.', action: () => 'lock' },
   { id: 'crosstab', name: 'Tab sync', watches: 'If any open tab locks or shreds, every other tab follows at once.', action: () => 'lock' },
 ]

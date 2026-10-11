@@ -4,7 +4,7 @@
 //
 // Format: "# " title, "## " section, "- " list item, "**bold**", blank-line paragraphs.
 
-export const TERMS_VERSION = '2026-10-10'
+export const TERMS_VERSION = '2026-10-11'
 export const COMPANY = '[Company legal name]'
 export const CONTACT = '[legal@yourdomain.com]'
 
@@ -31,7 +31,7 @@ You must be at least 18 and able to form a binding contract. You must give accur
 **Your password protects your encryption key.** We never receive your password or your key. If you forget your password, we cannot recover your data. Keep your own backups of important records.
 
 ## 4. Security features, including automatic shredding
-The Service includes security features that may **permanently destroy your stored data** without warning. This happens if the Service detects signs of compromise, if too many wrong passwords are entered (under the policy you choose), or if you start a shred yourself. Shredded data cannot be recovered by you or by us. You agree that we are not liable for data destroyed by these features working as designed or by a false positive. Keep originals of any document you are legally required to retain. The IRS generally expects you to keep records for at least three years.
+The Service includes security features that may **permanently destroy your stored data** without warning. This happens if the Service detects signs of compromise, if too many wrong sign-in attempts are made (under the policy you choose), or if you start a shred yourself. A shred removes the data from our servers and from every device signed in to your account. Shredded data cannot be recovered by you or by us. You agree that we are not liable for data destroyed by these features working as designed or by a false positive. Keep originals of any document you are legally required to retain. The IRS generally expects you to keep records for at least three years.
 
 ## 5. Your content
 You keep all rights to the documents and information you upload ("Your Content"). You give us a limited license to process Your Content only to provide the Service to you, as described in our Privacy Policy. You confirm you have the right to upload Your Content and that it doesn't violate anyone's rights or the law.
@@ -76,7 +76,7 @@ ${COMPANY}, [mailing address]. ${CONTACT}.
     summary: 'What we collect, where it lives, and who can see it.',
     body: `
 ## The short version
-- Your receipts, documents and profile are **encrypted in your browser** with a key only your password can unlock. We can't read them.
+- Your receipts, documents and profile are **encrypted in your browser** with a key only your password can unlock. We store that encrypted copy so you can sign in from any device, but we can't read it.
 - When you ask Shoebox to read a document, the image is sent to our AI provider to extract the text, then discarded. We don't keep it on our servers.
 - We don't sell or share your personal information, and we don't use it for advertising.
 
@@ -88,7 +88,9 @@ ${COMPANY}, [mailing address]. ${CONTACT}.
 **Technical information:** to run the website, our hosting provider processes standard request data such as IP address, browser type and request time, as described in its own policy. [List any analytics tool here, or state that none is used.]
 
 ## Where your information is stored
-In this version, your vault lives in your browser's storage on your device, encrypted with AES-256-GCM. Your password is stretched with PBKDF2 (600,000 iterations) to unwrap the key, and the password itself is never stored or sent. Clearing your browser data deletes your vault. [If server sync is added: describe server storage, encryption, region and retention here.]
+Your vault is encrypted in your browser with AES-256-GCM before it goes anywhere. A copy of that ciphertext is kept in your browser's storage and another on our database provider's servers ([Supabase, Inc.], United States, region us-west-2), so the same vault opens on every device you sign in from. Your password is stretched with PBKDF2 (600,000 iterations) on your device; it is never stored or sent. To sign in, your browser sends a separate proof derived from the password, and our servers keep only a hash of it.
+
+Alongside the ciphertext our servers keep what's needed to run your account: your email address, the salt and wrapped key, your security policy, a list of the devices signed in to your account (browser and operating system, time zone, and when each was first and last used), sign-in lockout counters, and, while two-factor is on, your authenticator secret and hashed recovery codes so a sign-in can't skip the code. We keep this until you delete your account or a shred removes it. Signing a device out erases that device's copy the next time it comes online.
 
 ## How documents are read (AI processing)
 When AI reading is on, each document image is downscaled and stripped of photo metadata on your device, then sent over an encrypted connection to [our server and] our AI provider, [Anthropic, PBC]. The provider uses it only to return the extracted fields. [Confirm the provider's data retention and no-training terms in your commercial agreement, and state them here precisely.] If you'd rather not use AI, you can enter details by hand.
@@ -97,7 +99,7 @@ When AI reading is on, each document image is downscaled and stripped of photo m
 To provide and secure the Service, respond to you, meet legal obligations, and enforce our Terms. We don't make decisions about you that have legal or similarly significant effects based solely on automated processing.
 
 ## Sharing
-We share information only with service providers who help us run Shoebox (hosting and AI processing) under contracts that limit their use of it; when the law requires it; or to protect rights and safety. We do not sell or "share" personal information as those terms are defined under California law, and we don't use it for targeted advertising.
+We share information only with service providers who help us run Shoebox (hosting, database storage and AI processing) under contracts that limit their use of it; when the law requires it; or to protect rights and safety. We do not sell or "share" personal information as those terms are defined under California law, and we don't use it for targeted advertising.
 
 ## Your choices and rights
 You can view, edit, export or delete your information in the app at any time. Deleting your account erases your vault from the device. Depending on where you live, you may have rights to access, correct, delete or port your information, and to appeal a decision we make about a request. Contact ${CONTACT}. We won't discriminate against you for exercising these rights.
@@ -124,20 +126,22 @@ ${COMPANY}, [mailing address]. ${CONTACT}.
 ## How your data is protected
 - **Encryption at rest:** every record is sealed with AES-256-GCM using a random data key. The data key is wrapped with a key derived from your password (PBKDF2-SHA-256, 600,000 iterations, unique salt).
 - **Tamper evidence:** each record is bound to your account and its own ID. The vault index is signed with HMAC-SHA-256, and a canary record must decrypt to a known value on every unlock.
-- **Two-factor sign-in (optional):** codes from an authenticator app, with one-time recovery codes. Wrong codes count toward the same lockout and shred limit as wrong passwords.
+- **Server-checked sign-in:** your password never leaves your device. Sign-in uses a separate key derived from it, and our servers keep only a hash. Lockouts are enforced on the server, where they can't be reset from a browser.
+- **Two-factor sign-in (optional):** codes from an authenticator app, with one-time recovery codes. With two-factor on, the server won't release your encrypted vault until the code checks out.
+- **Devices:** every device that signs in to your account is listed in Profile → Settings, and you can sign any of them out from there.
 - **Minimization:** images are downscaled and stripped of metadata such as GPS location before they are stored or sent anywhere.
 - **Transport:** all traffic uses TLS. The site sends strict security headers, including a Content Security Policy that blocks third-party scripts, HSTS, and frame protection.
 
 ## Breach sensors
 Shoebox watches for signs of compromise while you use it:
 - **Vault integrity:** stored data changed outside the app. Response: shred.
-- **Password guessing:** repeated wrong passwords. Response: growing lockouts, then a shred at the limit you choose.
+- **Password guessing:** repeated wrong passwords. Response: growing lockouts. If the right password is followed by wrong two-factor codes, the vault shreds at the limit you choose. Wrong passwords alone never wipe your vault, so a stranger who knows your email can't destroy it.
 - **Code injection:** scripts or frames added to the page after it loads. Response: lock, or shred in strict mode.
-- **New device signature:** an unlock from a different browser or time zone. Response: alert.
+- **New device signature:** a first sign-in from a new device, or an unlock from a different browser or time zone. Response: alert, and the device appears in your device list.
 - **Idle lock and tab sync:** forget the keys when you step away, and lock every tab together.
 
 ## What "shred" means
-Shredding destroys the encryption key and deletes every encrypted record from the device. This is called crypto-shredding: without the key the data can't be decrypted by anyone, including us. **It is permanent.** You'll see an incident report listing what was destroyed and why.
+Shredding destroys the encryption key and deletes every encrypted record, both from our servers and from every device signed in to your account. This is called crypto-shredding: without the key the data can't be decrypted by anyone, including us. **It is permanent.** You'll see an incident report listing what was destroyed and why.
 
 ## Limits
 Sensors that run in your browser can only see what your browser sees. They cannot protect a device that is already fully compromised, for example by malware with administrator access, and no system is perfectly secure. Keep your device updated and use a strong, unique password.

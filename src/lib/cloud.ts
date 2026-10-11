@@ -16,7 +16,8 @@ const env = (import.meta as unknown as { env?: Record<string, string | undefined
 const URL_ = env.VITE_SUPABASE_URL ?? 'https://ovxykjbnpozndcgxkqwg.supabase.co'
 const KEY = env.VITE_SUPABASE_KEY ?? 'sb_publishable_fPRIF6--vbM43dtVTDI21g_Pussn_NV'
 
-export const cloudEnabled = !!URL_ && !!KEY && env.VITE_CLOUD !== 'off' && typeof fetch !== 'undefined'
+// Off in the claude.ai preview build, which can't reach outside hosts.
+export const cloudEnabled = !!URL_ && !!KEY && env.VITE_CLOUD !== 'off' && typeof fetch !== 'undefined' && !(typeof __ARTIFACT__ !== 'undefined' && __ARTIFACT__)
 
 export class CloudError extends Error {
   constructor(public code: 'offline' | 'session_ended' | 'server', message: string) {

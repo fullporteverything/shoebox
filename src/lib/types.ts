@@ -38,12 +38,13 @@ export type Plan = {
   overtime: number | null
   kidsCanWork: boolean | null
   startedThisYear: boolean | null
+  shareSavings: boolean | null // counted in the public savings total unless false
 }
 
 export const emptyPlan: Plan = {
   occupation: '', entity: '', age65: null, age50: null, dependents: null, hdhp: null, hsaContrib: null, healthPremiums: null,
   retirement: null, retirementContrib: null, estimatedPaid: null, priorYearTax: null, priorYearAgi: null, homeOfficeSqFt: null,
-  milesFirstHalf: null, milesSecondHalf: null, tips: null, overtime: null, kidsCanWork: null, startedThisYear: null,
+  milesFirstHalf: null, milesSecondHalf: null, tips: null, overtime: null, kidsCanWork: null, startedThisYear: null, shareSavings: null,
 }
 
 export type IncomeType = 'wages' | 'self_employment' | 'interest' | 'dividends' | 'other'

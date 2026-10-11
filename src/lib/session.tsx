@@ -61,6 +61,7 @@ type Ctx = {
   signOutDevice: (id: string) => Promise<void>
   signOutOtherDevices: () => Promise<number>
   linkNow: () => Promise<boolean>
+  reportSavings: (year: number, amount: number) => void
   membership: Membership | null
   myReview: () => Promise<MyReview>
   submitReview: (r: { rating: number; body: string; name: string; role: string }) => Promise<boolean>
@@ -833,6 +834,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return r.signed_out
   }, [addLog])
 
+  // Public savings total: one rounded number per tax year, only with consent.
+  const lastReport = useRef('')
+  const reportSavings = useCallback((year: number, amount: number) => {
+    const tok = sessionRef.current?.cloud?.token
+    const key = `${year}:${Math.round(amount / 10)}`
+    if (!tok || key === lastReport.current) return
+    lastReport.current = key
+    void cloud.reportSavings(tok, year, amount).catch(() => (lastReport.current = ''))
+  }, [])
+
   const myReview = useCallback(async () => {
     const tok = sessionRef.current?.cloud?.token
     return tok ? cloud.myReview(tok) : null
@@ -915,12 +926,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       phase, email, profile, receipts, incomes, tripLogs, log, policy, incident, toasts, toast, dismissToast, signUp, signIn, signOut, lock,
       verifySecondFactor, cancelSecondFactor, twoFactor, beginTwoFactor, confirmTwoFactor, disableTwoFactor, regenerateRecovery,
       saveReceipt, deleteReceipt, saveProfile, savePlan, saveIncome, deleteIncome, saveTripLog, savePolicy, changePassword, shredNow, tamperDrill,
-      deleteAccount, acknowledgeIncident, cloudLinked, listDevices, signOutDevice, signOutOtherDevices, linkNow, membership, myReview, submitReview,
+      deleteAccount, acknowledgeIncident, cloudLinked, listDevices, signOutDevice, signOutOtherDevices, linkNow, reportSavings, membership, myReview, submitReview,
     }),
     [phase, email, profile, receipts, incomes, tripLogs, log, policy, incident, toasts, toast, dismissToast, signUp, signIn, signOut, lock,
       verifySecondFactor, cancelSecondFactor, twoFactor, beginTwoFactor, confirmTwoFactor, disableTwoFactor, regenerateRecovery,
       saveReceipt, deleteReceipt, saveProfile, savePlan, saveIncome, deleteIncome, saveTripLog, savePolicy, changePassword, shredNow, tamperDrill,
-      deleteAccount, acknowledgeIncident, cloudLinked, listDevices, signOutDevice, signOutOtherDevices, linkNow, membership, myReview, submitReview],
+      deleteAccount, acknowledgeIncident, cloudLinked, listDevices, signOutDevice, signOutOtherDevices, linkNow, reportSavings, membership, myReview, submitReview],
   )
   return <SessionCtx.Provider value={value}>{children}</SessionCtx.Provider>
 }

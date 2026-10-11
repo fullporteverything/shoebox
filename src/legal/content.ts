@@ -89,6 +89,8 @@ ${COMPANY}, [mailing address]. ${CONTACT}.
 
 **Information created when you use Shoebox:** categories, amounts and notes; and a security log of events such as unlocks, lockouts and sensor alerts. These are stored encrypted with your documents.
 
+**Savings total:** your savings meter figure for each tax year (the estimated tax your receipts took off, rounded to $10) is sent to our server and added to the public "saved by Shoebox users" total. Only the combined total is shown. You can turn this off in Profile → Settings, which sets your figure to zero.
+
 **Reviews:** if you leave one, we keep its rating, text, the display name and description you chose, and its approval status. Approved reviews are public. Reviews are not encrypted, because they're meant to be read; don't include anything private. Your email is never shown.
 
 **Technical information:** to run the website, our hosting provider processes standard request data such as IP address, browser type and request time, as described in its own policy. [List any analytics tool here, or state that none is used.]

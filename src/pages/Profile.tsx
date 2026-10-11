@@ -3,7 +3,7 @@ import type { Device } from '../lib/cloud.js'
 import { Icon } from '../components/icons.js'
 import { navigate } from '../lib/router.js'
 import { PageTitle } from '../components/Shell.js'
-import { Avatar, Drawer, Link, Seg } from '../components/ui.js'
+import { Avatar, Drawer, Link, Seg, Switch } from '../components/ui.js'
 import { RecoveryCodes, TwoFactorSetup } from '../components/TwoFactorSetup.js'
 import { TERMS_VERSION } from '../legal/content.js'
 import { passwordStrength } from '../lib/crypto.js'
@@ -189,6 +189,25 @@ function DevicesCard() {
   )
 }
 
+function SavingsShareCard() {
+  const { profile, savePlan, cloudLinked } = useSession()
+  if (!cloudLinked || !profile) return null
+  const on = profile.plan?.shareSavings !== false
+  return (
+    <div className="card rise" style={{ animationDelay: '0.1s' }}>
+      <div className="card-head">
+        <h2>Shoebox savings total</h2>
+        <Switch checked={on} onChange={(v) => void savePlan({ shareSavings: v })} label="Count my savings in the public total" />
+      </div>
+      <p className="muted" style={{ fontSize: 14 }}>
+        {on
+          ? 'Your savings meter figure, rounded to $10, is added to the “saved by Shoebox users” total on the homepage. Nothing else is sent, and your name is never shown.'
+          : 'Your savings aren’t counted in the homepage total.'}
+      </p>
+    </div>
+  )
+}
+
 export function Profile({ tab }: { tab: 'profile' | 'settings' }) {
   const { profile, saveProfile, changePassword, deleteAccount, signOut, toast } = useSession()
   const [p, setP] = useState<P | null>(profile)
@@ -327,6 +346,7 @@ export function Profile({ tab }: { tab: 'profile' | 'settings' }) {
           </form>
         </div>
         <div className="stack">
+          <SavingsShareCard />
           <div className="card rise" style={{ animationDelay: '0.12s' }}>
             <div className="card-head"><h2>Agreements</h2></div>
             <p className="muted" style={{ fontSize: 14 }}>You accepted the terms version {TERMS_VERSION}.</p>

@@ -7,6 +7,7 @@ import { RULES_REVIEWED } from '../lib/tax/rules.js'
 import { useSession } from '../lib/session.js'
 import { ReviewCarousel } from '../components/Reviews.js'
 import { FoundingBand } from '../components/Founding.js'
+import { SavedCounter } from '../components/SavedCounter.js'
 
 export function PublicFrame({ children }: { children: ReactNode }) {
   const { phase } = useSession()
@@ -115,6 +116,7 @@ export function Landing() {
             <span><Icon name="fire" /> Shreds itself if breached</span>
             <span><Icon name="scale" /> You confirm every item</span>
           </div>
+          <SavedCounter />
         </div>
         <Sorter />
       </section>

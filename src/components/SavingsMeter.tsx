@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import { useSession } from '../lib/session.js'
 import type { Picture } from '../lib/tax/advisor.js'
 import type { Profile } from '../lib/types.js'
 import { Icon } from './icons.js'
@@ -8,7 +9,16 @@ import { CountUp, Link, money } from './ui.js'
 // computable opportunities could add. Every figure comes from the estimate
 // engine run with and without the receipts; nothing here is a guess.
 export function SavingsMeter({ pic, profile }: { pic: Picture | null; profile: Profile }) {
+  const { reportSavings, cloudLinked } = useSession()
   const m = pic?.meter
+  // On unless the person switched it off in Settings (null means never changed).
+  const share = pic?.plan.shareSavings !== false
+  const year = pic?.est?.year
+  useEffect(() => {
+    if (!m || !year || !cloudLinked) return
+    const t = setTimeout(() => reportSavings(year, share ? m.saved : 0), 1500)
+    return () => clearTimeout(t)
+  }, [m?.saved, year, share, cloudLinked, reportSavings])
   if (!pic?.est || !m) {
     return (
       <div className="card meter rise">

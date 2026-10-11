@@ -155,6 +155,8 @@ export const cloud = {
   myReview: (token: string) => rpc<MyReview>('shoebox_my_review', { p_token: token }),
   submitReview: (token: string, r: { rating: number; body: string; name: string; role: string }) =>
     rpc<{ status: 'pending' } | { error: 'invalid' }>('shoebox_submit_review', { p_token: token, p_rating: r.rating, p_body: r.body, p_name: r.name, p_role: r.role }),
+  reportSavings: (token: string, year: number, amount: number) => rpc<null>('shoebox_report_savings', { p_token: token, p_year: year, p_amount: Math.round(amount) }),
+  savingsTotal: () => rpc<{ total: number; people: number }>('shoebox_savings_total', {}),
   membership: (token: string) => rpc<Membership>('shoebox_membership', { p_token: token }),
   signOut: (token: string, opts: { device?: string; others?: boolean } = {}) =>
     rpc<{ signed_out: number }>('shoebox_sign_out', { p_token: token, p_device: opts.device ?? null, p_others: !!opts.others }),

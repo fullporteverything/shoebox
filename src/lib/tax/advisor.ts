@@ -202,6 +202,15 @@ export type Picture = {
   opportunities: Opportunity[]
   businessExpenses: number
   itemized: { propertyTax: number; mortgageInterest: number; charityCash: number; medical: number }
+  // Savings meter: estimated tax with these receipts vs. the same year without them.
+  meter: Meter | null
+}
+
+export type Meter = {
+  saved: number // tax the receipts have already taken off the estimate
+  potential: number // more the computable savings opportunities would take off
+  potentialCount: number
+  stateIncluded: boolean // false when the state estimate isn't available, so the figure is federal + SE only
 }
 
 export function buildPicture(profile: Profile, receipts: Receipt[], manualIncome: IncomeEntry[], logs: Record<string, TripLog>): Picture {
@@ -219,7 +228,19 @@ export function buildPicture(profile: Profile, receipts: Receipt[], manualIncome
   const sumCat = (ids: string[]) => inYear.filter((r) => ids.includes(r.classification.category)).reduce((s, r) => s + (usdOf(r) ?? 0), 0)
   const itemized = { propertyTax: sumCat(['property_tax']), mortgageInterest: sumCat(['mortgage_interest']), charityCash: sumCat(['charity']), medical: sumCat(['medical']) }
   const est = estimate({ profile, plan, incomes, businessExpenses, itemized })
-  return { plan, incomes, est, trips, businessExpenses, itemized, opportunities: est ? opportunities(profile, plan, inYear, est, trips) : [] }
+  const opps = est ? opportunities(profile, plan, inYear, est, trips) : []
+  let meter: Meter | null = null
+  if (est) {
+    const without = estimate({ profile, plan, incomes, businessExpenses: 0, itemized: { propertyTax: 0, mortgageInterest: 0, charityCash: 0, medical: 0 } })
+    const counted = opps.filter((o) => o.status !== 'heads_up' && (o.savings ?? 0) > 0)
+    meter = {
+      saved: without ? Math.max(0, Math.round(without.totalTax - est.totalTax)) : 0,
+      potential: Math.round(counted.reduce((n, o) => n + (o.savings ?? 0), 0)),
+      potentialCount: counted.length,
+      stateIncluded: est.state.kind !== 'not_estimated',
+    }
+  }
+  return { plan, incomes, est, trips, businessExpenses, itemized, opportunities: opps, meter }
 }
 
 function opportunities(profile: Profile, plan: Plan, receipts: Receipt[], est: Estimate, trips: Picture['trips']): Opportunity[] {

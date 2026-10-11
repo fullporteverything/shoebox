@@ -74,3 +74,20 @@ test('mostly personal trip: no airfare', () => {
   assert.equal(r.rule, 'primarily_personal')
   assert.equal(r.transport.allowed, 0)
 })
+
+test('savings meter: receipts lower the estimate by exactly the with/without difference', async () => {
+  const { buildPicture } = await import('./advisor.js')
+  const inc = [{ id: 'i', date: '2026-02-01', source: 'Clients', type: 'self_employment' as const, amount: 60_000, withheld: 0 }]
+  const r = (id: string, amount: number): Receipt => {
+    const extraction: Receipt['extraction'] = { documentType: 'receipt', merchant: 'Cloudnest', date: '2026-03-01', total: amount, tax: null, tip: null, currency: 'USD', paymentMethod: null, lineItems: [], formType: null, suggestedCategory: 'software', businessPurpose: 'Hosting for client sites', confidence: 0.95, notes: '', city: null, country: null, usdTotal: null }
+    return { id, createdAt: 1, image: null, extraction, classification: classify(extraction, profile, { businessPct: 100, source: 'ai' }), businessPct: 100, status: 'confirmed', note: '' } as unknown as Receipt
+  }
+  const none = buildPicture(profile, [], inc, {})
+  assert.equal(none.meter?.saved, 0)
+  const some = buildPicture(profile, [r('a', 1000), r('b', 500)], inc, {})
+  const without = estimate({ profile, plan: emptyPlan, incomes: inc, businessExpenses: 0, itemized: { propertyTax: 0, mortgageInterest: 0, charityCash: 0, medical: 0 } })!
+  assert.equal(some.meter?.saved, Math.round(without.totalTax - some.est!.totalTax))
+  assert.ok((some.meter?.saved ?? 0) > 1500 * 0.2, 'about 35% of 1,500 for a self-employed filer in Texas')
+  const w2 = buildPicture({ ...profile, workType: 'w2' }, [], [{ id: 'w', date: '2026-01-01', source: 'Job', type: 'wages', amount: 70_000, withheld: 7_000 }], {})
+  assert.equal(w2.meter?.saved, 0)
+})

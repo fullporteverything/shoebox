@@ -10,6 +10,7 @@ import { stateByCode } from '../lib/tax/states.js'
 import { buildPicture } from '../lib/tax/advisor.js'
 import type { Receipt } from '../lib/types.js'
 import { ReviewNudge } from '../components/Reviews.js'
+import { SavingsMeter } from '../components/SavingsMeter.js'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -79,7 +80,9 @@ export function Overview() {
         actions={<Link to="/app/inbox" className="btn btn-gold"><Icon name="upload" /> Add documents</Link>}
       />
 
-      <div className="kpis stagger">
+      <SavingsMeter pic={pic} profile={profile} />
+
+      <div className="kpis stagger" style={{ marginTop: 16 }}>
         <div className="card kpi kpi-main lift glow-border" style={{ ['--i' as string]: 0 }}>
           <div className="k"><Icon name="sparkle" size={16} /> Deductions found</div>
           <div className="v"><CountUp value={stats.deductible} format={(n) => money(n, false)} /></div>

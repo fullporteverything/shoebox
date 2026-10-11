@@ -42,6 +42,12 @@ function limited(ip: string) {
   return recent.length > 20
 }
 
+// Token counts only, never document content, so the real cost per read can be
+// measured from the function logs.
+function logUsage(model: string, usage: { input_tokens: number; output_tokens: number; cache_read_input_tokens?: number | null }) {
+  console.log(JSON.stringify({ event: 'receipt_read', model, input: usage.input_tokens, output: usage.output_tokens, cached: usage.cache_read_input_tokens ?? 0 }))
+}
+
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } })
 
@@ -82,24 +88,43 @@ export async function POST(request: Request) {
 
   const data = Buffer.from(await file.arrayBuffer()).toString('base64')
   const client = new Anthropic()
+  const messages = [
+    {
+      role: 'user' as const,
+      content: [
+        { type: 'image' as const, source: { type: 'base64' as const, media_type: file.type as (typeof IMAGE_TYPES)[number], data } },
+        { type: 'text' as const, text: extractionPrompt(profile, false) },
+      ],
+    },
+  ]
   try {
+    // Optional two-step reading (RECEIPT_TIERED=1): the small model reads first;
+    // anything it isn't sure about goes to the main model. Off by default until
+    // an accuracy check on real receipts says the small model is good enough.
+    if (process.env.RECEIPT_TIERED === '1') {
+      const quick = await client.beta.messages.parse({
+        model: 'claude-haiku-5-5',
+        max_tokens: 4000,
+        output_config: { effort: 'low', format: betaZodOutputFormat(ExtractionSchema) },
+        messages,
+      })
+      logUsage('claude-haiku-5-5', quick.usage)
+      const q = quick.parsed_output
+      if (quick.stop_reason !== 'refusal' && q && q.confidence >= 0.8 && q.total > 0 && q.merchant.trim()) {
+        return json(200, { extraction: normalizeExtraction(q) })
+      }
+    }
+    const model = process.env.RECEIPT_MODEL || 'claude-opus-5-5'
     const response = await client.beta.messages.parse({
-      model: 'claude-opus-5-5',
+      model,
       max_tokens: 4000,
       // Refused requests re-run on Anthropic's recommended fallback model.
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
       output_config: { effort: 'low', format: betaZodOutputFormat(ExtractionSchema) },
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: file.type as (typeof IMAGE_TYPES)[number], data } },
-            { type: 'text', text: extractionPrompt(profile, false) },
-          ],
-        },
-      ],
+      messages,
     })
+    logUsage(model, response.usage)
     if (response.stop_reason === 'refusal') return json(422, { error: 'refused', message: 'This document couldn’t be read. Enter the details by hand.' })
     if (!response.parsed_output) return json(502, { error: 'invalid_output', message: 'The answer came back incomplete. Try again.' })
     return json(200, { extraction: normalizeExtraction(response.parsed_output) })

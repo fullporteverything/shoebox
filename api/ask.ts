@@ -47,6 +47,7 @@ export async function POST(request: Request) {
       system: `${ASSISTANT_RULES}\n\nTheir data:\n${context}`,
       messages,
     })
+    console.log(JSON.stringify({ event: 'assistant_answer', model: response.model, input: response.usage.input_tokens, output: response.usage.output_tokens }))
     if (response.stop_reason === 'refusal') return json(422, { error: 'refused', message: 'The assistant can’t help with that one. Try asking another way.' })
     const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
     if (!text) return json(502, { error: 'empty', message: 'No answer came back. Try again.' })

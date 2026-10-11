@@ -911,3 +911,21 @@ input[type='date']::-webkit-calendar-picker-indicator { cursor: pointer; opacity
 @keyframes sheet-up { from { transform: translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (min-width: 761px) { .sheet { display: none; } }
 @media (prefers-reduced-motion: reduce) { .sheet-panel, .sheet-scrim { animation: none; } }
+
+/* Tax Year Pass */
+.pass-card { padding: clamp(20px, 3vw, 30px); }
+.pass-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.pass-price { font-family: var(--font-display); font-size: 46px; line-height: 1; margin-top: 8px; }
+.pass-price b { font-weight: 750; }
+.pass-price .was { font-size: 24px; color: var(--ink-3); text-decoration: line-through; }
+.pass-price small { display: block; font-family: var(--font-ui); font-size: 13px; color: var(--ink-2); margin-top: 8px; font-weight: 400; }
+.pass-list { list-style: none; margin: 22px 0; padding: 0; display: grid; gap: 14px; }
+.pass-list li { display: flex; gap: 12px; align-items: flex-start; }
+.pass-list .ic, .pass-gate .ic { flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--gold-soft); color: var(--gold-ink); }
+.pass-list p { font-size: 13.5px; margin-top: 2px; }
+.pass-early { display: flex; gap: 6px; align-items: flex-start; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--glass-border); }
+.free-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; font-size: 14px; }
+.free-list li { display: flex; gap: 8px; align-items: flex-start; }
+.free-list li svg { color: var(--good); flex: none; margin-top: 2px; }
+.free-list.plain li { display: list-item; list-style: disc; margin-left: 18px; color: var(--ink-2); }
+.pass-gate { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 18px 20px; }

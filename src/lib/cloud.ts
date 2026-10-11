@@ -95,6 +95,13 @@ export type Membership = { joined_at: number; founding: boolean; number: number 
 export const FOUNDING_CLOSES = Date.UTC(2027, 0, 1)
 export const PASS_PRICE = 59
 export const FOUNDING_PRICE = 39
+// Until this date every pass feature is free for everyone (early access).
+export const PASS_REQUIRED_FROM = Date.UTC(2027, 0, 1)
+
+export type PassState = {
+  passes: { tax_year: number; status: 'paid' | 'refunded'; amount: number; founding: boolean; at: number }[]
+  quote: { amount: number; founding: boolean }
+}
 
 // This browser's entry in the account's device list. The id is assigned by the
 // server at first sign-in and remembered here so the list doesn't grow a new
@@ -157,6 +164,21 @@ export const cloud = {
     rpc<{ status: 'pending' } | { error: 'invalid' }>('shoebox_submit_review', { p_token: token, p_rating: r.rating, p_body: r.body, p_name: r.name, p_role: r.role }),
   reportSavings: (token: string, year: number, amount: number) => rpc<null>('shoebox_report_savings', { p_token: token, p_year: year, p_amount: Math.round(amount) }),
   savingsTotal: () => rpc<{ total: number; people: number }>('shoebox_savings_total', {}),
+  passes: (token: string, year: number) => rpc<PassState>('shoebox_passes', { p_token: token, p_year: year }),
+  checkout: async (token: string, year: number): Promise<{ url: string } | { error: string; message?: string }> => {
+    let res: Response
+    try {
+      res = await fetch(`${URL_}/functions/v1/shoebox-checkout`, {
+        method: 'POST',
+        headers: { apikey: KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, taxYear: year }),
+        credentials: 'omit',
+      })
+    } catch {
+      return { error: 'offline', message: 'Couldn’t reach the server. Check your connection.' }
+    }
+    return res.json().catch(() => ({ error: 'server' }))
+  },
   membership: (token: string) => rpc<Membership>('shoebox_membership', { p_token: token }),
   signOut: (token: string, opts: { device?: string; others?: boolean } = {}) =>
     rpc<{ signed_out: number }>('shoebox_sign_out', { p_token: token, p_device: opts.device ?? null, p_others: !!opts.others }),

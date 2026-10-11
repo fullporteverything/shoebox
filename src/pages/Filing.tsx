@@ -5,6 +5,8 @@ import { Link, Money } from '../components/ui.js'
 import { QuarterlyTable } from '../components/Quarterly.js'
 import { buildFilingPack, receiptsCsv, scheduleCCsv } from '../lib/filing.js'
 import { useSession } from '../lib/session.js'
+import { PassGate } from './Pass.js'
+import { PASS_REQUIRED_FROM } from '../lib/cloud.js'
 import { categoryById } from '../lib/tax/rules.js'
 import { stateByCode } from '../lib/tax/states.js'
 import { usdOf } from '../lib/tax/advisor.js'
@@ -23,10 +25,28 @@ function download(name: string, text: string) {
 }
 
 export function Filing() {
-  const { profile, receipts, incomes, tripLogs, toast } = useSession()
+  const { profile, receipts, incomes, tripLogs, toast, hasPass } = useSession()
   const pack = useMemo(() => (profile ? buildFilingPack(profile, receipts, incomes, tripLogs) : null), [profile, receipts, incomes, tripLogs])
   if (!profile || !pack) return null
   const { pic, year } = pack
+  if (!hasPass(year)) {
+    return (
+      <>
+        <PageTitle eyebrow={`Filing pack · tax year ${year}`} title="Ready for your preparer" sub="Your year in the order a tax preparer or tax software asks for it, as a PDF and spreadsheets." />
+        <PassGate feature="The filing pack" year={year} />
+        <div className="card rise gate-preview" style={{ marginTop: 16 }}>
+          <div className="card-head"><h2>What’s in yours</h2><span className="faint" style={{ fontSize: 13 }}>From your vault, right now</span></div>
+          <ul className="free-list">
+            <li><Icon name="check" size={16} /> A before-you-file checklist ({pack.attention.length ? `${pack.attention.length} item${pack.attention.length === 1 ? '' : 's'} to fix` : 'all clear'})</li>
+            <li><Icon name="check" size={16} /> {pack.income.length} income type{pack.income.length === 1 ? '' : 's'}, with tax withheld</li>
+            {profile.workType !== 'w2' && <li><Icon name="check" size={16} /> {pack.scheduleC.length} Schedule C line{pack.scheduleC.length === 1 ? '' : 's'}, totals ready to copy</li>}
+            <li><Icon name="check" size={16} /> Deductions, estimated tax and your quarterly plan</li>
+            <li><Icon name="check" size={16} /> All {pack.receipts.length} document{pack.receipts.length === 1 ? '' : 's'} as a PDF and two spreadsheets</li>
+          </ul>
+        </div>
+      </>
+    )
+  }
   const est = pic.est
   const st = stateByCode[profile.state]
   const se = profile.workType !== 'w2'
@@ -53,7 +73,7 @@ export function Filing() {
           </div>
         }
       />
-      <div className="chip gold early-chip"><Icon name="sparkle" size={12} /> Part of the Tax Year Pass · free during early access</div>
+      <Link to="/app/pass" className="chip gold early-chip"><Icon name="sparkle" size={12} /> {Date.now() < PASS_REQUIRED_FROM ? 'Part of the Tax Year Pass · free during early access' : `Tax Year Pass · ${year}`}</Link>
 
       <div className="card rise filing-sec">
         <div className="card-head"><h2>Before you file</h2></div>

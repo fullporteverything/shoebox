@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Icon } from '../components/icons.js'
 import { Link, Seg } from '../components/ui.js'
 import { passwordStrength } from '../lib/crypto.js'
-import { navigate } from '../lib/router.js'
+import { navigate, afterSignIn } from '../lib/router.js'
 import { useSession } from '../lib/session.js'
 import { states } from '../lib/tax/states.js'
 import type { FilingStatus, Profile, WorkType } from '../lib/types.js'
@@ -52,7 +52,7 @@ function SecondFactor() {
       setUntil(res.until)
       setShake((x) => x + 1)
       setCode('')
-    } else navigate('/app', { replace: true })
+    } else navigate(afterSignIn(), { replace: true })
   }
   return (
     <PublicFrame>
@@ -110,7 +110,7 @@ export function SignIn({ locked }: { locked?: boolean }) {
       setUntil(res.until)
       setShake((s) => s + 1)
       setPassword('')
-    } else navigate('/app', { replace: true })
+    } else navigate(afterSignIn(), { replace: true })
   }
 
   return (
@@ -182,7 +182,8 @@ export function SignUp() {
     try {
       const profile: Profile = {
         name: name.trim() || email.split('@')[0], email, state, workType, filingStatus: filing, businessName: businessName.trim(),
-        taxYear: new Date().getFullYear(), avatarHue: Math.floor(Math.random() * 360),
+        // Through April most people are filing for last year.
+        taxYear: new Date().getMonth() < 4 ? new Date().getFullYear() - 1 : new Date().getFullYear(), avatarHue: Math.floor(Math.random() * 360),
       }
       await signUp(email, password, profile)
       setBusy(false)

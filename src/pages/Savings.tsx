@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react'
 import { Icon } from '../components/icons.js'
 import { PageTitle } from '../components/Shell.js'
 import { QuarterlyTable } from '../components/Quarterly.js'
+import { PassGate } from './Pass.js'
 import { quarterlyPlan } from '../lib/tax/quarterly.js'
 import { CountUp, Drawer, Link, Seg, money, Money } from '../components/ui.js'
 import { AnalyzeError, ask, detectEngine } from '../lib/ai.js'
@@ -406,7 +407,7 @@ function AskDrawer({ context, onClose }: { context: string; onClose: () => void 
 // ---------- page ----------
 
 export function Savings() {
-  const { profile, receipts, incomes, tripLogs, savePlan, saveTripLog } = useSession()
+  const { profile, receipts, incomes, tripLogs, savePlan, saveTripLog, hasPass } = useSession()
   const [pace, setPace] = useState<'so_far' | 'pace'>('so_far')
   const [asking, setAsking] = useState(false)
   const [canAsk, setCanAsk] = useState(false)
@@ -480,7 +481,7 @@ export function Savings() {
       {quarterly && (
         <div className="card rise" style={{ marginTop: 16 }}>
           <div className="card-head"><h2>Quarterly tax planner</h2><Link to="/app/filing" className="btn btn-sm btn-ghost">Filing pack <Icon name="arrowRight" /></Link></div>
-          <QuarterlyTable q={quarterly} />
+          {hasPass(profile.taxYear) ? <QuarterlyTable q={quarterly} /> : <PassGate feature="The quarterly planner" year={profile.taxYear} />}
         </div>
       )}
 

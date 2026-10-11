@@ -4,7 +4,7 @@
 //
 // Format: "# " title, "## " section, "- " list item, "**bold**", blank-line paragraphs.
 
-export const TERMS_VERSION = '2026-10-11'
+export const TERMS_VERSION = '2026-10-11b'
 export const COMPANY = '[Company legal name]'
 export const CONTACT = '[legal@yourdomain.com]'
 
@@ -50,7 +50,11 @@ You agree not to:
 - break any law, including tax, privacy and export laws.
 
 ## 8. Fees
-Organizing documents, the tax map, savings scans, security features, sync and exporting your data are free. We plan to offer an optional paid Tax Year Pass. Its price, billing terms, renewal and cancellation terms will be shown before you buy, and you'll be able to cancel online. [Add full billing, renewal, refund and tax terms before the pass launches; several states' automatic-renewal laws require specific disclosures.]
+Organizing documents, the tax map, savings scans, security features, sync and exporting your data are free.
+
+**Tax Year Pass.** The optional Tax Year Pass unlocks the filing pack, the quarterly tax planner and step-by-step savings plans for one tax year. It's a single payment, shown with any applicable tax before you pay. **It does not renew automatically and there is no subscription to cancel.** Payments are processed by Stripe, Inc.; we never receive your card number. Until January 1, 2027, every pass feature is free for everyone; buying before then locks in your price.
+
+**Refunds.** If the pass isn't right for you, contact us within 30 days of purchase for a full refund. A refunded pass stops unlocking its features. Deleting your account doesn't refund a pass automatically; ask us first if you want one.
 
 **Founding members.** If your account was created before January 1, 2027, you're a founding member: when the Tax Year Pass launches, your price for it is $39 per tax year instead of the standard $59, for as long as you keep the pass without a gap. The founding price ends if you cancel and later restart, or if your account is deleted or shredded. We'll honor it even if the standard price goes up.
 
@@ -110,7 +114,7 @@ When AI reading is on, each document image is downscaled and stripped of photo m
 To provide and secure the Service, respond to you, meet legal obligations, and enforce our Terms. We don't make decisions about you that have legal or similarly significant effects based solely on automated processing.
 
 ## Sharing
-We share information only with service providers who help us run Shoebox (hosting, database storage and AI processing) under contracts that limit their use of it; when the law requires it; or to protect rights and safety. We do not sell or "share" personal information as those terms are defined under California law, and we don't use it for targeted advertising.
+We share information only with service providers who help us run Shoebox (hosting, database storage, AI processing and, if you buy a Tax Year Pass, Stripe for payment; Stripe receives your email and card details, never your documents) under contracts that limit their use of it; when the law requires it; or to protect rights and safety. We do not sell or "share" personal information as those terms are defined under California law, and we don't use it for targeted advertising.
 
 ## Your choices and rights
 You can view, edit, export or delete your information in the app at any time. Deleting your account erases your vault from the device. Depending on where you live, you may have rights to access, correct, delete or port your information, and to appeal a decision we make about a request. Contact ${CONTACT}. We won't discriminate against you for exercising these rights.

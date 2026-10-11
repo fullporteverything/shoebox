@@ -27,7 +27,7 @@ export function FoundingBand() {
         <div className="founding-cta">
           <div className="founding-price"><span className="was">${PASS_PRICE}</span> <b>${FOUNDING_PRICE}</b><small>/ tax year, locked in</small></div>
           {phase === 'unlocked' ? (
-            <Link to="/app/profile" className="btn btn-gold">See your founder status</Link>
+            <Link to="/app/pass" className="btn btn-gold">See your founder price</Link>
           ) : (
             <Link to="/signup" className="btn btn-gold btn-lg">Claim a founding spot <Icon name="arrowRight" /></Link>
           )}
@@ -50,9 +50,10 @@ export function FoundingCard() {
         <span className="chip gold"><Icon name="sparkle" size={12} /> #{membership.number}</span>
       </div>
       <p className="muted" style={{ fontSize: 14 }}>
-        You joined on {new Date(membership.joined_at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}. When the Tax Year
-        Pass launches, your price is ${FOUNDING_PRICE} a year instead of ${PASS_PRICE}, for as long as you keep it. Everything you use today stays free.
+        You joined on {new Date(membership.joined_at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}. Your Tax Year Pass
+        price is ${FOUNDING_PRICE} instead of ${PASS_PRICE}, every year you keep it without a gap. Everything you use today stays free.
       </p>
+      <Link to="/app/pass" className="btn btn-sm" style={{ marginTop: 12 }}><Icon name="sparkle" /> See the Tax Year Pass</Link>
     </div>
   )
 }

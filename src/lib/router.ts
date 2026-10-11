@@ -51,3 +51,10 @@ export function useRoute() {
 }
 
 export const supportsViewTransitions = () => 'startViewTransition' in document
+
+// Where to land after signing in: the app page that was asked for (a link
+// back from Stripe, say), or the overview.
+export const afterSignIn = () => (current.startsWith('/app') ? current : '/app')
+
+// The ?a=b part of a route like /app/pass?paid=cs_123.
+export const routeParams = (route: string) => new URLSearchParams(route.split('?')[1] ?? '')

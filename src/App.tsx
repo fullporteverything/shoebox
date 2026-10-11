@@ -13,11 +13,13 @@ import { Landing } from './pages/Public.js'
 import { Receipts } from './pages/Receipts.js'
 import { Savings } from './pages/Savings.js'
 import { Filing } from './pages/Filing.js'
+import { Pass } from './pages/Pass.js'
 import { Security } from './pages/Security.js'
 import { TaxMap } from './pages/TaxMap.js'
 
 function AppPage({ route }: { route: string }) {
-  switch (route) {
+  switch (route.split('?')[0]) {
+    case '/app/pass': return <Pass route={route} />
     case '/app/savings': return <Savings />
     case '/app/filing': return <Filing />
     case '/app/inbox': return <Inbox />

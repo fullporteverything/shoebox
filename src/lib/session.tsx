@@ -12,7 +12,8 @@ import { newRecoveryCodes, newSecret, normalizeRecovery, otpauthUri, verifyTotp 
 import type { TwoFactor } from './totp.js'
 import { deriveSecrets, sha256, unb64 } from './crypto.js'
 import { cloud, cloudEnabled, CloudError, describeDevice, isOk, rememberDevice } from './cloud.js'
-import type { Device, LoginResult, Membership, MyReview } from './cloud.js'
+import type { Device, LoginResult, Membership, MyReview, PassState } from './cloud.js'
+import { PASS_REQUIRED_FROM } from './cloud.js'
 import { usdRate } from './fx.js'
 
 export type LogEntry = { at: number; level: 'info' | 'alert' | 'lock' | 'shred'; sensor?: SensorId; text: string }
@@ -64,6 +65,10 @@ type Ctx = {
   linkNow: () => Promise<boolean>
   reportSavings: (year: number, amount: number) => void
   membership: Membership | null
+  pass: PassState | null
+  hasPass: (year: number) => boolean
+  refreshPass: () => Promise<PassState | null>
+  startCheckout: (year: number) => Promise<string | null>
   myReview: () => Promise<MyReview>
   submitReview: (r: { rating: number; body: string; name: string; role: string }) => Promise<boolean>
 }
@@ -105,6 +110,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const cloudPendingRef = useRef<{ email: string; ticket: string; kek: CryptoKey; auth: string } | null>(null)
   const [cloudLinked, setCloudLinked] = useState(false)
   const [membership, setMembership] = useState<Membership | null>(null)
+  const [pass, setPass] = useState<PassState | null>(null)
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [tf, setTf] = useState<TwoFactor | null>(null)
   const logRef = useRef<LogEntry[]>([])
@@ -145,6 +151,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     cloudPendingRef.current = null
     setCloudLinked(false)
     setMembership(null)
+    setPass(null)
     if (syncTimer.current) clearTimeout(syncTimer.current)
     setTf(null)
     setProfile(null)
@@ -883,6 +890,42 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, receipts])
 
+  const refreshPass = useCallback(async () => {
+    const tok = sessionRef.current?.cloud?.token
+    const year = profileRef.current?.taxYear
+    if (!tok || !year) return null
+    const p = await cloud.passes(tok, year).catch(() => null)
+    if (p && sessionRef.current?.cloud?.token === tok) setPass(p)
+    return p
+  }, [])
+
+  // True when this tax year's pass features are open: everyone during early
+  // access, then whoever has a paid pass for that year.
+  const hasPass = useCallback(
+    (year: number) => Date.now() < PASS_REQUIRED_FROM || !!pass?.passes.some((p) => p.tax_year === year && p.status === 'paid'),
+    [pass],
+  )
+
+  // Returns an error message, or sends the browser to Stripe.
+  const startCheckout = useCallback(async (year: number) => {
+    const tok = sessionRef.current?.cloud?.token
+    if (!tok) return 'Link this vault to your account first (Profile → Settings), then try again.'
+    const r = await cloud.checkout(tok, year)
+    if ('url' in r && r.url.startsWith('https://checkout.stripe.com/')) {
+      location.assign(r.url)
+      return null
+    }
+    const e = r as { error: string; message?: string }
+    if (e.error === 'not_configured') return 'Payments aren’t switched on yet. Everything is free during early access, so there’s nothing you’re missing.'
+    if (e.error === 'session_ended') return 'Your session ended. Sign in again and retry.'
+    return e.message ?? 'Couldn’t start the checkout. Try again in a minute.'
+  }, [])
+
+  useEffect(() => {
+    if (phase === 'unlocked' && cloudLinked) void refreshPass()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, cloudLinked, profile?.taxYear, refreshPass])
+
   // Founding-member status, fetched once the vault is linked.
   useEffect(() => {
     const tok = sessionRef.current?.cloud?.token
@@ -953,12 +996,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       phase, email, profile, receipts, incomes, tripLogs, log, policy, incident, toasts, toast, dismissToast, signUp, signIn, signOut, lock,
       verifySecondFactor, cancelSecondFactor, twoFactor, beginTwoFactor, confirmTwoFactor, disableTwoFactor, regenerateRecovery,
       saveReceipt, deleteReceipt, saveProfile, savePlan, saveIncome, deleteIncome, saveTripLog, savePolicy, changePassword, shredNow, tamperDrill,
-      deleteAccount, acknowledgeIncident, cloudLinked, listDevices, signOutDevice, signOutOtherDevices, linkNow, reportSavings, membership, myReview, submitReview,
+      deleteAccount, acknowledgeIncident, cloudLinked, listDevices, signOutDevice, signOutOtherDevices, linkNow, reportSavings, membership, pass, hasPass, refreshPass, startCheckout, myReview, submitReview,
     }),
     [phase, email, profile, receipts, incomes, tripLogs, log, policy, incident, toasts, toast, dismissToast, signUp, signIn, signOut, lock,
       verifySecondFactor, cancelSecondFactor, twoFactor, beginTwoFactor, confirmTwoFactor, disableTwoFactor, regenerateRecovery,
       saveReceipt, deleteReceipt, saveProfile, savePlan, saveIncome, deleteIncome, saveTripLog, savePolicy, changePassword, shredNow, tamperDrill,
-      deleteAccount, acknowledgeIncident, cloudLinked, listDevices, signOutDevice, signOutOtherDevices, linkNow, reportSavings, membership, myReview, submitReview],
+      deleteAccount, acknowledgeIncident, cloudLinked, listDevices, signOutDevice, signOutOtherDevices, linkNow, reportSavings, membership, pass, hasPass, refreshPass, startCheckout, myReview, submitReview],
   )
   return <SessionCtx.Provider value={value}>{children}</SessionCtx.Provider>
 }

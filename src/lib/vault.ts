@@ -590,3 +590,6 @@ async function applyRemote(s: Session, acct: Account, rows: Row[], p: Extract<Pu
 export function isSessionEnded(e: unknown) {
   return e instanceof CloudError && e.code === 'session_ended'
 }
+
+// Drops this browser's copy after a remote sign-out. The server copy stays.
+export const forgetLocal = deleteAccount

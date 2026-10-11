@@ -750,3 +750,14 @@ input[type='date'].input { color-scheme: inherit; }
 input[type='date']::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.7; filter: invert(0.8) sepia(1) saturate(3) hue-rotate(5deg); }
 :root[data-theme='light'] input[type='date']::-webkit-calendar-picker-indicator { filter: none; }
 @media (prefers-color-scheme: light) { :root:not([data-theme='dark']) input[type='date']::-webkit-calendar-picker-indicator { filter: none; } }
+
+/* Devices (Profile → Settings) */
+.device-list { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+.device { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; border: 1px solid var(--glass-border); background: color-mix(in srgb, var(--ink) 3%, transparent); }
+.device.current { border-color: color-mix(in srgb, var(--good) 45%, var(--glass-border)); background: color-mix(in srgb, var(--good) 7%, transparent); }
+.device.skeleton { justify-content: center; min-height: 58px; }
+.device-ico { flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink-2); }
+.device.current .device-ico { background: var(--good-soft); color: var(--good); }
+.device-main { flex: 1; min-width: 0; }
+.device-name { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 600; }
+.device-meta { font-size: 12.5px; margin-top: 2px; overflow-wrap: anywhere; }

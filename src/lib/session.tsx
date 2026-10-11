@@ -10,7 +10,9 @@ import { emptyPlan } from './types.js'
 import { TERMS_VERSION } from '../legal/content.js'
 import { newRecoveryCodes, newSecret, normalizeRecovery, otpauthUri, verifyTotp } from './totp.js'
 import type { TwoFactor } from './totp.js'
-import { sha256 } from './crypto.js'
+import { deriveSecrets, sha256, unb64 } from './crypto.js'
+import { cloud, cloudEnabled, CloudError, describeDevice, isOk, rememberDevice } from './cloud.js'
+import type { Device, LoginResult } from './cloud.js'
 
 export type LogEntry = { at: number; level: 'info' | 'alert' | 'lock' | 'shred'; sensor?: SensorId; text: string }
 export type Phase = 'signed_out' | 'two_factor' | 'unlocked' | 'locked' | 'shredded'
@@ -54,6 +56,10 @@ type Ctx = {
   tamperDrill: () => Promise<void>
   deleteAccount: () => Promise<void>
   acknowledgeIncident: () => void
+  cloudLinked: boolean
+  listDevices: () => Promise<Device[]>
+  signOutDevice: (id: string) => Promise<void>
+  signOutOtherDevices: () => Promise<number>
 }
 
 const SessionCtx = createContext<Ctx | null>(null)
@@ -88,6 +94,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const sessionRef = useRef<Session | null>(null)
   const pendingRef = useRef<{ res: vault.UnlockResult; tf: TwoFactor } | null>(null)
+  // Password accepted by the server, code still owed. The KEK waits here so
+  // PBKDF2 doesn't run twice.
+  const cloudPendingRef = useRef<{ email: string; ticket: string; kek: CryptoKey; auth: string } | null>(null)
+  const [cloudLinked, setCloudLinked] = useState(false)
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [tf, setTf] = useState<TwoFactor | null>(null)
   const logRef = useRef<LogEntry[]>([])
   const writing = useRef(0)
@@ -109,6 +120,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     } finally {
       writing.current--
     }
+    if (s.cloud) scheduleSync()
   }, [])
 
   const addLog = useCallback(
@@ -123,6 +135,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const dropKeys = () => {
     sessionRef.current = null
     pendingRef.current = null
+    cloudPendingRef.current = null
+    setCloudLinked(false)
+    if (syncTimer.current) clearTimeout(syncTimer.current)
     setTf(null)
     setProfile(null)
     setReceipts([])
@@ -144,11 +159,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   )
 
   const doShred = useCallback(
-    async (targetEmail: string, sensor: string, detail: string, broadcast = true) => {
+    async (targetEmail: string, sensor: string, detail: string, broadcast = true, token = sessionRef.current?.cloud?.token) => {
       dropKeys()
       try {
         const inc = await vault.shred(targetEmail, { at: Date.now(), sensor, detail })
         setIncident(inc)
+        // The server copy goes too, so every signed-in device follows.
+        if (token) await cloud.shred(token, inc).catch(() => undefined)
       } catch {
         setIncident({ at: Date.now(), sensor, detail, destroyed: ['Encryption key'] })
       }
@@ -203,7 +220,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const signUp = useCallback(
     async (rawEmail: string, password: string, p: Profile) => {
-      const s = await vault.createAccount(rawEmail, password, TERMS_VERSION)
+      const em = rawEmail.trim().toLowerCase()
+      let online = cloudEnabled
+      if (online) {
+        try {
+          const pre = await cloud.prelogin(em)
+          if (pre.exists && !pre.shredded) throw new vault.VaultError('exists', 'An account with that email already exists. Sign in instead.')
+        } catch (e) {
+          if (!(e instanceof CloudError)) throw e
+          online = false
+        }
+      }
+      const { session: s, auth } = await vault.createAccount(em, password, TERMS_VERSION)
       sessionRef.current = s
       setEmail(s.email)
       writeLastEmail(s.email)
@@ -216,6 +244,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setPolicyState(vault.defaultPolicy)
       setIncident(null)
       setPhase('unlocked')
+      if (online) await linkToCloud(s, auth, null)
+      else if (cloudEnabled) toast('warn', 'Couldn’t reach the server, so this vault lives on this device for now. It uploads the next time you sign in online.')
     },
     [addLog],
   )
@@ -223,6 +253,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(
     async (rawEmail: string, password: string): Promise<{ error?: string; until?: number; needs2fa?: boolean }> => {
       const em = rawEmail.trim().toLowerCase()
+      if (cloudEnabled) {
+        const r = await cloudSignIn(em, password)
+        if (r) return r
+      }
       try {
         const res = await vault.unlock(em, password)
         setEmail(em)
@@ -240,6 +274,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         return {}
       } catch (e) {
         if (!(e instanceof vault.VaultError)) return { error: 'Something went wrong opening the vault. Try again.' }
+        if (e.code === 'no_account') {
+          return { error: cloudEnabled ? 'No account with that email. Check the spelling, or create one.' : 'No account with that email on this device.' }
+        }
         if (e.code === 'bad_password') {
           const acct = await vault.getAccount(em)
           if (acct && acct.policy.wipeAfter && acct.failed >= acct.policy.wipeAfter) {
@@ -272,17 +309,223 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [addLog, doShred, trip],
   )
 
-  const completeUnlock = async (res: vault.UnlockResult, how = '') => {
+  const completeUnlock = async (res: vault.UnlockResult, how = '', newDevice = false) => {
     sessionRef.current = res.session
     pendingRef.current = null
+    cloudPendingRef.current = null
+    setCloudLinked(!!res.session.cloud)
     hydrate(res.records)
     setPhase('unlocked')
     addLog({ level: 'info', text: (res.failedBefore ? `Unlocked after ${res.failedBefore} failed attempt${res.failedBefore > 1 ? 's' : ''}` : 'Unlocked') + how + '.' })
-    if (res.fingerprintChanged) await trip('fingerprint', 'alert', 'This unlock came from a different browser or time zone than last time. If it wasn’t you, change your password.')
+    if (newDevice) {
+      await trip('fingerprint', 'alert', `First sign-in from ${describeDevice(navigator.userAgent)}. It now appears in Profile → Settings → Devices. If it wasn’t you, sign it out there and change your password.`)
+    } else if (res.fingerprintChanged) {
+      await trip('fingerprint', 'alert', 'This unlock came from a different browser or time zone than last time. If it wasn’t you, change your password.')
+    }
+    // A vault made before cloud sync existed uploads itself on its first online sign-in.
+    if (cloudEnabled && !res.session.cloud && (await vault.needsEnrollment(res.session.email))) {
+      const sec = res.records.find((r) => r.kind === 'security')?.value as TwoFactor | undefined
+      await linkToCloud(res.session, res.auth, sec?.enabled ? sec : null)
+    }
+  }
+
+  const linkToCloud = async (s: Session, auth: string, sec: TwoFactor | null) => {
+    try {
+      const r = await vault.enroll(s, auth, sec ? { secret: sec.secret, lastStep: sec.lastStep, recovery: sec.recovery } : null)
+      if (r === 'exists') {
+        toast('warn', 'Another vault already uses this email on the server, so this one stays on this device only.')
+        return
+      }
+      if (r === 'invalid') return
+      rememberDevice(r.deviceId)
+      setCloudLinked(true)
+      addLog({ level: 'info', text: 'Vault linked to your account. It now opens on any device you sign in from.' })
+      toast('good', 'Synced. You can now sign in from any device.')
+      scheduleSync(0)
+    } catch {
+      toast('warn', 'Couldn’t reach the server to sync. This vault stays on this device for now and uploads at your next online sign-in.')
+    }
+  }
+
+  // Cloud sign-in. Returns null when the account isn't on the server or the
+  // server can't be reached, so the caller falls back to this browser's copy.
+  const cloudSignIn = async (em: string, password: string): Promise<{ error?: string; until?: number; needs2fa?: boolean } | null> => {
+    let pre
+    try {
+      pre = await cloud.prelogin(em)
+    } catch {
+      const local = await vault.getAccount(em)
+      if (local?.wrapped) {
+        toast('warn', 'Couldn’t reach the server. Opening the copy saved in this browser; changes sync next time you’re online.')
+        return null
+      }
+      return { error: 'Couldn’t reach the Shoebox server, and this browser has no saved copy of that vault. Check your connection and try again.' }
+    }
+    const local = await vault.getAccount(em)
+    if (!pre.exists) {
+      // Linked before but gone from the server: it was deleted from another device.
+      if (local?.sync) {
+        await vault.deleteAccount(em)
+        return { error: 'That account was deleted from another device.' }
+      }
+      return null
+    }
+    setEmail(em)
+    writeLastEmail(em)
+    if (pre.shredded) {
+      if (local?.wrapped && local.userId === pre.user_id) await vault.shred(em, pre.incident ?? { at: Date.now(), sensor: 'Remote shred', detail: 'The vault was shredded from another device.' })
+      setIncident(pre.incident ? { ...pre.incident, destroyed: pre.incident.destroyed ?? ['Encryption key'] } : null)
+      setPhase('shredded')
+      return { error: 'shredded' }
+    }
+    const { kek, auth } = await deriveSecrets(password, unb64(pre.salt), pre.iterations)
+    let r: LoginResult
+    try {
+      r = await cloud.login(em, auth)
+    } catch {
+      return { error: 'Couldn’t reach the Shoebox server. Try again in a moment.' }
+    }
+    if ('two_factor' in r) {
+      cloudPendingRef.current = { email: em, ticket: r.ticket, kek, auth }
+      setIncident(null)
+      setPhase('two_factor')
+      return { needs2fa: true }
+    }
+    return finishCloud(em, kek, auth, r, '')
+  }
+
+  const finishCloud = async (em: string, kek: CryptoKey, auth: string, r: LoginResult, how: string, recoveryHash?: string) => {
+    if (!isOk(r)) {
+      if ('two_factor' in r) return { error: 'Start again with your password.' }
+      if (r.error === 'bad_password') return { error: 'That password doesn’t match.', until: r.until ?? undefined }
+      if (r.error === 'bad_code') {
+        const left = r.wipe_after ? r.wipe_after - r.code_failed : null
+        return { error: `That code didn’t work.${left !== null ? ` ${left} attempt${left === 1 ? '' : 's'} left before the vault shreds itself.` : ''}`, until: r.until ?? undefined }
+      }
+      if (r.error === 'locked') return { error: 'Too many failed attempts. Wait for the timer, then try again.', until: r.until }
+      if (r.error === 'shredded') {
+        await vault.shred(em, r.incident ?? { at: Date.now(), sensor: 'Password guessing', detail: 'Too many failed sign-in attempts.' }).catch(() => undefined)
+        dropKeys()
+        setIncident(r.incident ? { ...r.incident, destroyed: r.incident.destroyed ?? ['Encryption key'] } : null)
+        setPhase('shredded')
+        return { error: 'shredded' }
+      }
+      if (r.error === 'expired') {
+        dropKeys()
+        setPhase('signed_out')
+        return { error: 'That took too long. Enter your password again.' }
+      }
+      return { error: 'No account with that email.' }
+    }
+    rememberDevice(r.device_id)
+    try {
+      const keepLocal = await vault.hasPendingFor(em, r.vault.user_id, r.vault.salt)
+      if (!keepLocal) await vault.importRemote(r.vault)
+      let res = await vault.unlockWithKek(em, kek, auth)
+      res.session.cloud = { token: r.token, deviceId: r.device_id }
+      if (keepLocal) {
+        await vault.sync(res.session)
+        res = { ...res, records: await vault.decryptAll(res.session) }
+      }
+      const acct = await vault.getAccount(em)
+      if (acct) setPolicyState(acct.policy)
+      setIncident(null)
+      // The server checked the code; keep the local copy of the two-factor state in step.
+      const sec = res.records.find((x) => x.kind === 'security')
+      if (sec && (sec.value as TwoFactor).enabled && (recoveryHash || r.step)) {
+        const t = sec.value as TwoFactor
+        const next: TwoFactor = recoveryHash ? { ...t, recovery: t.recovery.filter((h) => h !== recoveryHash) } : { ...t, lastStep: r.step ?? t.lastStep }
+        await vault.put(res.session, 'security', 'security', next)
+        res = { ...res, records: res.records.map((x) => (x.kind === 'security' ? { ...x, value: next } : x)) }
+        if (recoveryHash) toast('warn', `Recovery code used. ${next.recovery.length} left. Make new ones in Profile → Settings if you’re running low.`)
+      } else if (res.secondFactor) {
+        // Two-factor is on in the vault but the server didn't ask: ask here.
+        pendingRef.current = { res, tf: sec!.value as TwoFactor }
+        cloudPendingRef.current = null
+        setPhase('two_factor')
+        return { needs2fa: true }
+      }
+      await completeUnlock(res, how, r.new_device)
+      scheduleSync(0)
+      return {}
+    } catch (e) {
+      if (e instanceof vault.VaultError && e.code === 'tampered') {
+        await doShred(em, 'Vault integrity', e.message, true, r.token)
+        return { error: 'shredded' }
+      }
+      return { error: 'Something went wrong opening the vault. Try again.' }
+    }
+  }
+
+  // Push and pull in the background. Errors here mean another device acted:
+  // a remote sign-out, a shred, or a tampered server copy.
+  const runSync = async () => {
+    const s = sessionRef.current
+    if (!s?.cloud) return
+    try {
+      writing.current++
+      const r = await vault.sync(s).finally(() => writing.current--)
+      if (sessionRef.current !== s) return
+      if (r.shredded) {
+        const pre = await cloud.prelogin(s.email).catch(() => null)
+        await doShred(s.email, pre && pre.exists && pre.incident ? pre.incident.sensor : 'Remote shred', pre && pre.exists && pre.incident ? pre.incident.detail : 'The vault was shredded from another device.', true, undefined)
+        return
+      }
+      if (r.policy) setPolicyState(r.policy)
+      if (r.pulled) {
+        hydrate(await vault.decryptAll(s))
+        toast('info', 'Updated with changes from another device.')
+      }
+    } catch (e) {
+      if (sessionRef.current !== s) return
+      if (vault.isSessionEnded(e)) {
+        const pre = await cloud.prelogin(s.email).catch(() => null)
+        if (pre && pre.exists && pre.shredded) {
+          await doShred(s.email, pre.incident?.sensor ?? 'Remote shred', pre.incident?.detail ?? 'The vault was shredded from another device.', true, undefined)
+          return
+        }
+        // Signed out remotely: this browser's copy goes too.
+        const em = s.email
+        dropKeys()
+        if (pre && !pre.exists) await vault.deleteAccount(em)
+        else await vault.forgetLocal(em)
+        setPhase('signed_out')
+        toast('warn', pre && !pre.exists ? 'This account was deleted from another device.' : 'This device was signed out from another device. Sign in again to continue.')
+        channel.current?.send('lock', em)
+        return
+      }
+      if (e instanceof vault.VaultError && e.code === 'tampered') {
+        await doShred(s.email, 'Vault integrity', e.message)
+        return
+      }
+      // Offline or a server hiccup: the changes stay queued and go up later.
+    }
+  }
+
+  const scheduleSync = (delay = 600) => {
+    if (syncTimer.current) clearTimeout(syncTimer.current)
+    syncTimer.current = setTimeout(() => void runSync(), delay)
   }
 
   const verifySecondFactor = useCallback(
     async (code: string, recovery: boolean): Promise<{ error?: string; until?: number }> => {
+      const pc = cloudPendingRef.current
+      if (pc) {
+        let arg = code.replace(/\s+/g, '')
+        let hash: string | undefined
+        if (recovery) {
+          const norm = normalizeRecovery(code)
+          if (!norm) return { error: 'Recovery codes look like abcd-efgh.' }
+          hash = arg = await sha256(norm)
+        }
+        let r: LoginResult
+        try {
+          r = await cloud.login2fa(pc.ticket, arg, recovery)
+        } catch {
+          return { error: 'Couldn’t reach the Shoebox server. Try again in a moment.' }
+        }
+        return finishCloud(pc.email, pc.kek, pc.auth, r, recovery ? ' with a recovery code' : ' with a two-factor code', isOk(r) ? hash : undefined)
+      }
       const pending = pendingRef.current
       if (!pending) return { error: 'Start again with your password.' }
       const em = pending.res.session.email
@@ -341,6 +584,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const { codes, hashes } = await newRecoveryCodes()
       const next: TwoFactor = { enabled: true, secret, lastStep: step, recovery: hashes, enabledAt: Date.now() }
       await write((s) => vault.put(s, 'security', 'security', next))
+      await pushTwoFactor(next)
       await vault.setTwoFactorHint(email, true)
       setTf(next)
       addLog({ level: 'info', text: 'Two-factor authentication turned on.' })
@@ -349,6 +593,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [addLog, email],
   )
+
+  // The server needs the secret to refuse sign-ins without a code.
+  const pushTwoFactor = async (t: TwoFactor) => {
+    const tok = sessionRef.current?.cloud?.token
+    if (!tok) return
+    await cloud.setTwoFactor(tok, t.enabled ? t.secret : '', t.lastStep, t.enabled ? t.recovery : []).catch(() => {
+      toast('warn', 'Two-factor changed on this device but the server didn’t get it. Try again online.')
+    })
+  }
 
   // Changing two-factor settings needs a current code (or a recovery code).
   const checkCurrent = async (code: string): Promise<TwoFactor | null> => {
@@ -367,6 +620,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (!ok) return false
       const next: TwoFactor = { enabled: false, secret: '', lastStep: 0, recovery: [], enabledAt: 0 }
       await write((s) => vault.put(s, 'security', 'security', next))
+      await pushTwoFactor(next)
       await vault.setTwoFactorHint(email, false)
       setTf(next)
       addLog({ level: 'alert', text: 'Two-factor authentication turned off.' })
@@ -383,6 +637,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const { codes, hashes } = await newRecoveryCodes()
       const next = { ...ok, recovery: hashes }
       await write((s) => vault.put(s, 'security', 'security', next))
+      await pushTwoFactor(next)
       setTf(next)
       addLog({ level: 'info', text: 'New recovery codes generated; the old ones stopped working.' })
       return codes
@@ -394,6 +649,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const twoFactor = useMemo(() => ({ enabled: !!tf?.enabled, recoveryLeft: tf?.recovery.length ?? 0, enabledAt: tf?.enabled ? tf.enabledAt : null }), [tf])
 
   const signOut = useCallback(() => {
+    const tok = sessionRef.current?.cloud?.token
+    if (tok) void cloud.signOut(tok).catch(() => undefined)
     dropKeys()
     setPhase('signed_out')
   }, [])
@@ -407,6 +664,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     } finally {
       writing.current--
     }
+    if (s.cloud) scheduleSync()
   }
 
   const saveReceipt = useCallback(async (r: Receipt) => {
@@ -474,6 +732,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     async (p: Policy) => {
       await vault.setPolicy(email, p)
       setPolicyState(p)
+      const tok = sessionRef.current?.cloud?.token
+      if (tok) await cloud.setPolicy(tok, p).catch(() => toast('warn', 'Saved on this device; the server copy updates next time you’re online.'))
       addLog({ level: 'info', text: `Security policy updated: wipe after ${p.wipeAfter || 'never'}, lock after ${p.autoLockMin} min idle${p.strict ? ', strict mode on' : ''}.` })
     },
     [addLog, email],
@@ -517,12 +777,38 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const deleteAccount = useCallback(async () => {
     const em = email
+    const tok = sessionRef.current?.cloud?.token
+    if (tok) await cloud.remove(tok)
     dropKeys()
     await vault.deleteAccount(em)
     writeLastEmail(null)
     setEmail('')
     setPhase('signed_out')
   }, [email])
+
+  const listDevices = useCallback(async () => {
+    const tok = sessionRef.current?.cloud?.token
+    if (!tok) return []
+    return cloud.devices(tok)
+  }, [])
+
+  const signOutDevice = useCallback(
+    async (id: string) => {
+      const tok = sessionRef.current?.cloud?.token
+      if (!tok) return
+      await cloud.signOut(tok, { device: id })
+      addLog({ level: 'info', text: 'Signed out a device from Settings.' })
+    },
+    [addLog],
+  )
+
+  const signOutOtherDevices = useCallback(async () => {
+    const tok = sessionRef.current?.cloud?.token
+    if (!tok) return 0
+    const r = await cloud.signOut(tok, { others: true })
+    addLog({ level: 'alert', text: `Signed out every other device (${r.signed_out}).` })
+    return r.signed_out
+  }, [addLog])
 
   const acknowledgeIncident = useCallback(() => {
     setIncident(null)
@@ -546,10 +832,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       }
       void trip('integrity', 'shred', 'Stored records changed outside the app while the vault was open.')
     }, 45_000)
+    // Pick up changes from other devices, and notice a remote sign-out.
+    const pull = setInterval(() => {
+      if (!writing.current) void runSync()
+    }, 20_000)
+    const onFocus = () => void runSync()
+    window.addEventListener('focus', onFocus)
     return () => {
       stopInjection()
       stopIdle()
       clearInterval(iv)
+      clearInterval(pull)
+      window.removeEventListener('focus', onFocus)
     }
   }, [phase, policy, lock, trip])
 
@@ -575,12 +869,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       phase, email, profile, receipts, incomes, tripLogs, log, policy, incident, toasts, toast, dismissToast, signUp, signIn, signOut, lock,
       verifySecondFactor, cancelSecondFactor, twoFactor, beginTwoFactor, confirmTwoFactor, disableTwoFactor, regenerateRecovery,
       saveReceipt, deleteReceipt, saveProfile, savePlan, saveIncome, deleteIncome, saveTripLog, savePolicy, changePassword, shredNow, tamperDrill,
-      deleteAccount, acknowledgeIncident,
+      deleteAccount, acknowledgeIncident, cloudLinked, listDevices, signOutDevice, signOutOtherDevices,
     }),
     [phase, email, profile, receipts, incomes, tripLogs, log, policy, incident, toasts, toast, dismissToast, signUp, signIn, signOut, lock,
       verifySecondFactor, cancelSecondFactor, twoFactor, beginTwoFactor, confirmTwoFactor, disableTwoFactor, regenerateRecovery,
       saveReceipt, deleteReceipt, saveProfile, savePlan, saveIncome, deleteIncome, saveTripLog, savePolicy, changePassword, shredNow, tamperDrill,
-      deleteAccount, acknowledgeIncident],
+      deleteAccount, acknowledgeIncident, cloudLinked, listDevices, signOutDevice, signOutOtherDevices],
   )
   return <SessionCtx.Provider value={value}>{children}</SessionCtx.Provider>
 }

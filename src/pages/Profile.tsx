@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
+import type { Device } from '../lib/cloud.js'
 import { Icon } from '../components/icons.js'
 import { navigate } from '../lib/router.js'
 import { PageTitle } from '../components/Shell.js'
@@ -71,6 +72,110 @@ function TwoFactorCard() {
             </form>
           )}
         </Drawer>
+      )}
+    </div>
+  )
+}
+
+const ago = (ms: number) => {
+  const s = Math.max(0, (Date.now() - ms) / 1000)
+  if (s < 90) return 'just now'
+  if (s < 3600) return `${Math.round(s / 60)} min ago`
+  if (s < 86_400) return `${Math.round(s / 3600)} h ago`
+  if (s < 86_400 * 30) return `${Math.round(s / 86_400)} d ago`
+  return new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+const deviceIcon = (label: string) => (/iPhone|iPad|Android/.test(label) ? 'phone' : 'laptop')
+
+function DevicesCard() {
+  const { cloudLinked, listDevices, signOutDevice, signOutOtherDevices, toast } = useSession()
+  const [devices, setDevices] = useState<Device[] | null>(null)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState<string | null>(null)
+  const load = useCallback(async () => {
+    setError('')
+    try {
+      setDevices(await listDevices())
+    } catch {
+      setError('Couldn’t load your devices. Check your connection.')
+    }
+  }, [listDevices])
+  useEffect(() => {
+    if (cloudLinked) void load()
+  }, [cloudLinked, load])
+
+  const others = devices?.filter((d) => !d.current) ?? []
+  return (
+    <div className="card rise" style={{ animationDelay: '0.04s' }}>
+      <div className="card-head">
+        <h2>Devices</h2>
+        {cloudLinked && devices && <span className="chip"><span className="dot" /> {devices.length} signed in</span>}
+      </div>
+      {!cloudLinked ? (
+        <p className="muted" style={{ fontSize: 14 }}>This vault lives only on this device right now. Sign out and back in while online to link it, and it will open on any device you sign in from.</p>
+      ) : (
+        <>
+          <p className="muted" style={{ fontSize: 14 }}>Every browser that has signed in to this account. If you don’t recognize one, sign it out and change your password.</p>
+          {error && <div className="error" style={{ marginTop: 12 }}><Icon name="alert" size={16} /> {error}</div>}
+          <ul className="device-list">
+            {!devices && !error && <li className="device skeleton" aria-busy="true"><span className="faint">Loading…</span></li>}
+            {devices?.map((d) => (
+              <li key={d.id} className={'device' + (d.current ? ' current' : '')}>
+                <span className="device-ico"><Icon name={deviceIcon(d.label)} size={18} /></span>
+                <div className="device-main">
+                  <div className="device-name">
+                    {d.label}
+                    {d.current && <span className="chip good"><span className="dot" /> This device</span>}
+                  </div>
+                  <div className="faint device-meta">
+                    {d.current ? 'Active now' : d.active ? `Active ${ago(d.last_seen)}` : `Last seen ${ago(d.last_seen)}`}
+                    {d.tz ? ` · ${d.tz.replace(/_/g, ' ')}` : ''} · first signed in {new Date(d.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </div>
+                </div>
+                {!d.current && (
+                  <button
+                    className="btn btn-sm"
+                    disabled={busy !== null}
+                    onClick={async () => {
+                      setBusy(d.id)
+                      try {
+                        await signOutDevice(d.id)
+                        toast('good', `${d.label} was signed out. Its saved copy is erased the next time it comes online.`)
+                        await load()
+                      } catch {
+                        toast('bad', 'Couldn’t sign that device out. Try again.')
+                      }
+                      setBusy(null)
+                    }}
+                  >
+                    {busy === d.id ? 'Signing out…' : 'Sign out'}
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+          {others.length > 0 && (
+            <button
+              className="btn btn-sm btn-danger"
+              style={{ marginTop: 12 }}
+              disabled={busy !== null}
+              onClick={async () => {
+                setBusy('all')
+                try {
+                  const n = await signOutOtherDevices()
+                  toast('good', `Signed out ${n} other device${n === 1 ? '' : 's'}.`)
+                  await load()
+                } catch {
+                  toast('bad', 'Couldn’t sign the other devices out. Try again.')
+                }
+                setBusy(null)
+              }}
+            >
+              <Icon name="logout" /> {busy === 'all' ? 'Signing out…' : 'Sign out all other devices'}
+            </button>
+          )}
+        </>
       )}
     </div>
   )
@@ -160,7 +265,7 @@ export function Profile({ tab }: { tab: 'profile' | 'settings' }) {
         <div className="stack">
           <div className="card rise">
             <div className="card-head"><h2>Security settings</h2></div>
-            <p className="muted" style={{ fontSize: 14 }}>Two-factor sign-in, password, agreements and account deletion are on the Settings tab.</p>
+            <p className="muted" style={{ fontSize: 14 }}>Two-factor sign-in, the devices signed in to this account, password, agreements and account deletion are on the Settings tab.</p>
             <button className="btn" style={{ marginTop: 12 }} onClick={() => navigate('/app/profile/settings')}><Icon name="shield" /> Open settings</button>
           </div>
         </div>
@@ -169,6 +274,7 @@ export function Profile({ tab }: { tab: 'profile' | 'settings' }) {
       <div className="split">
         <div className="stack">
           <TwoFactorCard />
+          <DevicesCard />
           <form
             className="card rise"
             style={{ animationDelay: '0.08s' }}
@@ -216,7 +322,7 @@ export function Profile({ tab }: { tab: 'profile' | 'settings' }) {
           </div>
           <div className="card danger-zone rise" style={{ animationDelay: '0.16s' }}>
             <div className="card-head"><h2>Delete account</h2></div>
-            <p className="hint">Erases your vault and account from this device. Type your email to confirm.</p>
+            <p className="hint">Erases your vault and account everywhere: this device, the server copy, and every other signed-in device the next time it comes online. Type your email to confirm.</p>
             <input id="pf-del" className="input" style={{ marginTop: 10 }} value={del} onChange={(e) => setDel(e.target.value)} placeholder={profile.email} aria-label="Type your email to confirm" />
             <button className="btn btn-danger" style={{ marginTop: 10 }} disabled={del.trim().toLowerCase() !== profile.email} onClick={() => void deleteAccount()}>
               <Icon name="trash" /> Delete everything

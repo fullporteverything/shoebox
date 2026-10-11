@@ -32,6 +32,7 @@ async function rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
       headers: { apikey: KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify(args),
       cache: 'no-store',
+      signal: typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal ? AbortSignal.timeout(20_000) : undefined,
       credentials: 'omit',
       referrerPolicy: 'no-referrer',
     })

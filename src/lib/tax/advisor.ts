@@ -232,7 +232,8 @@ export function buildPicture(profile: Profile, receipts: Receipt[], manualIncome
   let meter: Meter | null = null
   if (est) {
     const without = estimate({ profile, plan, incomes, businessExpenses: 0, itemized: { propertyTax: 0, mortgageInterest: 0, charityCash: 0, medical: 0 } })
-    const counted = opps.filter((o) => o.status !== 'heads_up' && (o.savings ?? 0) > 0)
+    // Only things that apply and aren't in the estimate yet: QBI and anything titled "…counted" already are.
+    const counted = opps.filter((o) => o.status === 'applies' && o.id !== 'qbi' && !o.title.endsWith('counted') && (o.savings ?? 0) > 0)
     meter = {
       saved: without ? Math.max(0, Math.round(without.totalTax - est.totalTax)) : 0,
       potential: Math.round(counted.reduce((n, o) => n + (o.savings ?? 0), 0)),

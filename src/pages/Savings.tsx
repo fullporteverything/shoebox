@@ -1,6 +1,8 @@
 import React, { useMemo, useRef, useState } from 'react'
 import { Icon } from '../components/icons.js'
 import { PageTitle } from '../components/Shell.js'
+import { QuarterlyTable } from '../components/Quarterly.js'
+import { quarterlyPlan } from '../lib/tax/quarterly.js'
 import { CountUp, Drawer, Link, Seg, money, Money } from '../components/ui.js'
 import { AnalyzeError, ask, detectEngine } from '../lib/ai.js'
 import type { Turn } from '../lib/ai.js'
@@ -425,7 +427,8 @@ export function Savings() {
     itemized: { propertyTax: pic.itemized.propertyTax * factor, mortgageInterest: pic.itemized.mortgageInterest * factor, charityCash: pic.itemized.charityCash * factor, medical: pic.itemized.medical * factor },
   })
   const onPlan = (patch: Partial<Plan>) => void savePlan(patch)
-  const potential = pic.opportunities.reduce((s, o) => s + (o.status === 'applies' && o.id !== 'qbi' && !o.title.endsWith('counted') ? o.savings ?? 0 : 0), 0)
+  const potential = pic.meter?.potential ?? 0
+  const quarterly = pic.est && profile.workType !== 'w2' ? quarterlyPlan(pic.est, pic.plan) : null
   const context = contextFor(profile, receipts, pic)
 
   return (
@@ -472,6 +475,13 @@ export function Savings() {
             </div>
           </div>
         </>
+      )}
+
+      {quarterly && (
+        <div className="card rise" style={{ marginTop: 16 }}>
+          <div className="card-head"><h2>Quarterly tax planner</h2><Link to="/app/filing" className="btn btn-sm btn-ghost">Filing pack <Icon name="arrowRight" /></Link></div>
+          <QuarterlyTable q={quarterly} />
+        </div>
       )}
 
       <div className="split" style={{ marginTop: 16 }}>

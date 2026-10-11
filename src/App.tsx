@@ -12,12 +12,14 @@ import { Profile } from './pages/Profile.js'
 import { Landing } from './pages/Public.js'
 import { Receipts } from './pages/Receipts.js'
 import { Savings } from './pages/Savings.js'
+import { Filing } from './pages/Filing.js'
 import { Security } from './pages/Security.js'
 import { TaxMap } from './pages/TaxMap.js'
 
 function AppPage({ route }: { route: string }) {
   switch (route) {
     case '/app/savings': return <Savings />
+    case '/app/filing': return <Filing />
     case '/app/inbox': return <Inbox />
     case '/app/receipts': return <Receipts />
     case '/app/tax': return <TaxMap />

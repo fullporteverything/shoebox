@@ -12,6 +12,7 @@ const items: { to: string; label: string; icon: IconName }[] = [
   { to: '/app/inbox', label: 'Inbox', icon: 'inbox' },
   { to: '/app/receipts', label: 'Receipts', icon: 'receipts' },
   { to: '/app/tax', label: 'Tax map', icon: 'map' },
+  { to: '/app/filing', label: 'Filing pack', icon: 'doc' },
   { to: '/app/security', label: 'Security', icon: 'shield' },
   { to: '/app/profile', label: 'Profile', icon: 'user' },
 ]

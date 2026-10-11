@@ -9,7 +9,7 @@
     "build:artifact": "vite build --mode artifact && node scripts/to-artifact.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/lib/tax/classify.test.ts src/lib/tax/estimate.test.ts src/lib/totp.test.ts src/lib/blackbox.test.ts src/lib/crypto.test.ts"
+    "test": "tsx --test src/lib/tax/classify.test.ts src/lib/tax/estimate.test.ts src/lib/totp.test.ts src/lib/blackbox.test.ts src/lib/crypto.test.ts src/lib/tax/quarterly.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.130.0",

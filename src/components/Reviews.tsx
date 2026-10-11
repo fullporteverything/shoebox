@@ -217,7 +217,7 @@ export function ReviewNudge({ receiptCount }: { receiptCount: number }) {
   }
   return (
     <div className="card nudge rise" role="note">
-      <Icon name="sparkle" />
+      <Icon name="sparkle" size={20} />
       <div style={{ flex: 1 }}>
         <b>How’s Shoebox working for you?</b>
         <div className="muted" style={{ fontSize: 14 }}>An honest review, good or bad, helps other people decide and tells us what to fix.</div>

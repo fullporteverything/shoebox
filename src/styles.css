@@ -811,3 +811,45 @@ input[type='date']::-webkit-calendar-picker-indicator { cursor: pointer; opacity
 .meter-bar { height: 8px; border-radius: 99px; background: var(--gold-soft); margin-top: 16px; overflow: hidden; }
 .meter-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--good), color-mix(in srgb, var(--good) 60%, var(--gold))); transition: width 1.2s var(--ease-out); }
 .meter-note { font-size: 12.5px; margin-top: 10px; }
+
+/* Filing pack */
+.filing { display: grid; gap: 16px; }
+.filing-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.early-chip { justify-self: start; }
+.filing-sec { overflow-x: auto; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tbl th { text-align: left; font-size: 12px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.04em; padding: 8px 10px; border-bottom: 1px solid var(--glass-border); }
+.tbl td { padding: 9px 10px; border-bottom: 1px solid color-mix(in srgb, var(--ink) 7%, transparent); vertical-align: top; }
+.tbl .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tbl .nowrap { white-space: nowrap; }
+.tbl tfoot td { font-weight: 700; border-bottom: 0; border-top: 2px solid var(--glass-border); }
+.tbl tr.past td { color: var(--ink-3); }
+.tbl tr.next td { background: color-mix(in srgb, var(--gold) 9%, transparent); }
+.tbl tr.todo td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+.tbl .sub { font-size: 12px; margin-top: 2px; }
+.checklist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.checklist li { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.checklist li span { flex: 1; }
+.checklist li.ok > svg { color: var(--good); }
+.checklist li.todo > svg { color: var(--warn); }
+.facts { display: flex; flex-wrap: wrap; gap: 10px 28px; margin: 16px 0 0; }
+.facts dt { font-size: 12px; color: var(--ink-3); }
+.facts dd { margin: 2px 0 0; font-weight: 600; }
+.filing-foot { margin-top: 4px; }
+
+@media print {
+  .aurora, .dock, .toasts, .filing-actions, .no-print, .early-chip, .grain { display: none !important; }
+  html, body { height: auto !important; overflow: visible !important; }
+  body, .app, .main { background: #fff !important; color: #111 !important; }
+  .app { display: block !important; min-height: 0 !important; }
+  .page-title { display: block !important; }
+  .page-title p { max-width: none !important; }
+  .filing { display: block !important; }
+  .filing > * { margin-bottom: 12px; }
+  .main { margin: 0 !important; padding: 0 !important; max-width: none !important; }
+  .card { box-shadow: none !important; border: 1px solid #ccc !important; background: #fff !important; backdrop-filter: none !important; }
+  .card-head, .tbl thead { break-after: avoid; }
+  .tbl tr { break-inside: avoid; }
+  .tbl th, .tbl td { color: #111 !important; }
+  .rise, .lift { animation: none !important; opacity: 1 !important; transform: none !important; }
+}

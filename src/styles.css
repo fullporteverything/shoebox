@@ -794,3 +794,7 @@ input[type='date']::-webkit-calendar-picker-indicator { cursor: pointer; opacity
 .founding-price small { display: block; font-family: var(--font-ui); font-size: 13px; color: var(--ink-2); margin-top: 6px; }
 @media (max-width: 760px) { .founding { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .review { animation: none; } }
+.sync-line { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 10px; text-decoration: none; margin-top: 6px; }
+.sync-line.ok { color: var(--good); }
+.sync-line.warn { color: var(--warn); background: var(--warn-soft); }
+.hero-chips { display: flex; gap: 8px; flex-wrap: wrap; }

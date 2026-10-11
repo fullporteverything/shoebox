@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   const artifact = mode === 'artifact'
   return {
     esbuild: { jsx: 'transform', jsxFactory: 'React.createElement', jsxFragment: 'React.Fragment' },
-    define: { __ARTIFACT__: JSON.stringify(artifact) },
+    define: { __ARTIFACT__: JSON.stringify(artifact), __BUILD__: JSON.stringify((process.env.VERCEL_GIT_COMMIT_SHA ?? 'dev').slice(0, 7)) },
     resolve: artifact
       ? {
           alias: [

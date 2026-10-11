@@ -1,3 +1,4 @@
+import { cloudEnabled } from '../lib/cloud.js'
 import React, { useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useSession } from '../lib/session.js'
@@ -55,6 +56,7 @@ export function Shell({ route, children }: { route: string; children: ReactNode 
             <i className="pulse" />
             <span>Vault encrypted · Lock now</span>
           </button>
+          <SyncLine />
           {profile && (
             <Link to="/app/profile" className="me">
               <Avatar name={profile.name} hue={profile.avatarHue} />
@@ -83,5 +85,16 @@ export function PageTitle({ title, sub, actions, eyebrow }: { title: ReactNode; 
       </div>
       {actions && <div className="top-actions">{actions}</div>}
     </div>
+  )
+}
+
+// Whether this vault reaches other devices, at a glance.
+function SyncLine() {
+  const { cloudLinked } = useSession()
+  if (!cloudEnabled) return null
+  return cloudLinked ? (
+    <Link to="/app/profile/settings" className="sync-line ok"><Icon name="check" size={13} /> Synced across your devices</Link>
+  ) : (
+    <Link to="/app/profile/settings" className="sync-line warn"><Icon name="alert" size={13} /> Only on this device · Link it</Link>
   )
 }

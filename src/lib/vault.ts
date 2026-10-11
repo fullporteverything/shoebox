@@ -45,7 +45,9 @@ export type Account = {
 
 type Row = { key: string; userId: string; id: string; kind: string; sealed: Sealed; h: string }
 
-export type Session = { email: string; userId: string; keys: DataKeys; cloud?: { token: string; deviceId: string } }
+// auth is the sign-in proof derived with the KEK; kept while unlocked so a
+// vault that isn't linked yet can be uploaded without asking for the password again.
+export type Session = { email: string; userId: string; keys: DataKeys; cloud?: { token: string; deviceId: string }; auth?: string }
 
 export class VaultError extends Error {
   constructor(public code: 'no_account' | 'exists' | 'bad_password' | 'locked' | 'shredded' | 'tampered' | 'unsupported', message: string, public until?: number) {

@@ -34,7 +34,7 @@ export function PublicFrame({ children }: { children: ReactNode }) {
         {children}
         <footer className="foot">
         <div className="wrap">
-          <span>© {new Date().getFullYear()} Shoebox. Organizes records, doesn’t give tax advice. Rules reviewed {RULES_REVIEWED}.</span>
+          <span>© 2025–{new Date().getFullYear()} Shoebox · Est. 2025. Organizes records, doesn’t give tax advice. Rules reviewed {RULES_REVIEWED}.</span>
           <nav aria-label="Legal">
             {legalDocs.map((d) => (
               <Link key={d.slug} to={`/legal/${d.slug}`}>{d.short}</Link>
@@ -90,7 +90,10 @@ export function Landing() {
     <PublicFrame>
       <section className="wrap hero">
         <div>
-          <div className="chip gold rise" style={{ marginBottom: 20 }}><Icon name="sparkle" size={14} /> Federal and all 50 states</div>
+          <div className="hero-chips rise" style={{ marginBottom: 20 }}>
+            <span className="chip gold"><Icon name="sparkle" size={14} /> Federal and all 50 states</span>
+            <span className="chip">Est. 2025</span>
+          </div>
           <h1>
             {words.map((w, i) => (
               <span key={w} className="word" style={{ ['--i' as string]: i }}>{w}&nbsp;</span>

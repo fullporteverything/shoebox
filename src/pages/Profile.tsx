@@ -91,7 +91,8 @@ const ago = (ms: number) => {
 const deviceIcon = (label: string) => (/iPhone|iPad|Android/.test(label) ? 'phone' : 'laptop')
 
 function DevicesCard() {
-  const { cloudLinked, listDevices, signOutDevice, signOutOtherDevices, toast } = useSession()
+  const { cloudLinked, listDevices, signOutDevice, signOutOtherDevices, linkNow, toast } = useSession()
+  const [linking, setLinking] = useState(false)
   const [devices, setDevices] = useState<Device[] | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
@@ -115,7 +116,12 @@ function DevicesCard() {
         {cloudLinked && devices && <span className="chip"><span className="dot" /> {devices.length} signed in</span>}
       </div>
       {!cloudLinked ? (
-        <p className="muted" style={{ fontSize: 14 }}>This vault lives only on this device right now. Sign out and back in while online to link it, and it will open on any device you sign in from.</p>
+        <>
+          <p className="muted" style={{ fontSize: 14 }}>This vault lives only in this browser right now, so other devices can’t find your account. Link it and it opens on any device you sign in from.</p>
+          <button className="btn btn-gold" style={{ marginTop: 12 }} disabled={linking} onClick={async () => { setLinking(true); await linkNow(); setLinking(false) }}>
+            <Icon name="shield" /> {linking ? 'Linking…' : 'Link this vault to my account'}
+          </button>
+        </>
       ) : (
         <>
           <p className="muted" style={{ fontSize: 14 }}>Every browser that has signed in to this account. If you don’t recognize one, sign it out and change your password.</p>
@@ -330,6 +336,7 @@ export function Profile({ tab }: { tab: 'profile' | 'settings' }) {
               <Link to="/legal/security" className="btn btn-sm">Security</Link>
               <Link to="/legal/disclaimer" className="btn btn-sm">Disclaimer</Link>
             </div>
+            <p className="faint" style={{ fontSize: 12, marginTop: 12 }}>App version {__BUILD__}</p>
           </div>
           <div className="card danger-zone rise" style={{ animationDelay: '0.16s' }}>
             <div className="card-head"><h2>Delete account</h2></div>

@@ -60,6 +60,7 @@ type Ctx = {
   listDevices: () => Promise<Device[]>
   signOutDevice: (id: string) => Promise<void>
   signOutOtherDevices: () => Promise<number>
+  linkNow: () => Promise<boolean>
   membership: Membership | null
   myReview: () => Promise<MyReview>
   submitReview: (r: { rating: number; body: string; name: string; role: string }) => Promise<boolean>
@@ -237,6 +238,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         }
       }
       const { session: s, auth } = await vault.createAccount(em, password, TERMS_VERSION)
+      s.auth = auth
       sessionRef.current = s
       setEmail(s.email)
       writeLastEmail(s.email)
@@ -315,6 +317,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   )
 
   const completeUnlock = async (res: vault.UnlockResult, how = '', newDevice = false) => {
+    res.session.auth = res.auth
     sessionRef.current = res.session
     pendingRef.current = null
     cloudPendingRef.current = null
@@ -334,22 +337,37 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const linkToCloud = async (s: Session, auth: string, sec: TwoFactor | null) => {
+  const linkToCloud = async (s: Session, auth: string, sec: TwoFactor | null): Promise<boolean> => {
     try {
       const r = await vault.enroll(s, auth, sec ? { secret: sec.secret, lastStep: sec.lastStep, recovery: sec.recovery } : null)
       if (r === 'exists') {
         toast('warn', 'Another vault already uses this email on the server, so this one stays on this device only.')
-        return
+        addLog({ level: 'alert', text: 'Couldn’t link this vault: the server already has a different vault under this email.' })
+        return false
       }
-      if (r === 'invalid') return
+      if (r === 'invalid') {
+        toast('bad', 'The server turned down this vault’s upload. It’s still safe on this device.')
+        addLog({ level: 'alert', text: 'Couldn’t link this vault: the server rejected the upload as invalid.' })
+        return false
+      }
       rememberDevice(r.deviceId)
       setCloudLinked(true)
       addLog({ level: 'info', text: 'Vault linked to your account. It now opens on any device you sign in from.' })
       toast('good', 'Synced. You can now sign in from any device.')
       scheduleSync(0)
-    } catch {
+      return true
+    } catch (e) {
       toast('warn', 'Couldn’t reach the server to sync. This vault stays on this device for now and uploads at your next online sign-in.')
+      addLog({ level: 'alert', text: `Couldn’t link this vault: ${e instanceof Error ? e.message : 'unknown error'}` })
+      return false
     }
+  }
+
+  const linkNow = async () => {
+    const s = sessionRef.current
+    if (!s || s.cloud || !s.auth || !cloudEnabled) return false
+    const sec = tf?.enabled ? tf : null
+    return linkToCloud(s, s.auth, sec)
   }
 
   // Cloud sign-in. Returns null when the account isn't on the server or the
@@ -897,12 +915,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       phase, email, profile, receipts, incomes, tripLogs, log, policy, incident, toasts, toast, dismissToast, signUp, signIn, signOut, lock,
       verifySecondFactor, cancelSecondFactor, twoFactor, beginTwoFactor, confirmTwoFactor, disableTwoFactor, regenerateRecovery,
       saveReceipt, deleteReceipt, saveProfile, savePlan, saveIncome, deleteIncome, saveTripLog, savePolicy, changePassword, shredNow, tamperDrill,
-      deleteAccount, acknowledgeIncident, cloudLinked, listDevices, signOutDevice, signOutOtherDevices, membership, myReview, submitReview,
+      deleteAccount, acknowledgeIncident, cloudLinked, listDevices, signOutDevice, signOutOtherDevices, linkNow, membership, myReview, submitReview,
     }),
     [phase, email, profile, receipts, incomes, tripLogs, log, policy, incident, toasts, toast, dismissToast, signUp, signIn, signOut, lock,
       verifySecondFactor, cancelSecondFactor, twoFactor, beginTwoFactor, confirmTwoFactor, disableTwoFactor, regenerateRecovery,
       saveReceipt, deleteReceipt, saveProfile, savePlan, saveIncome, deleteIncome, saveTripLog, savePolicy, changePassword, shredNow, tamperDrill,
-      deleteAccount, acknowledgeIncident, cloudLinked, listDevices, signOutDevice, signOutOtherDevices, membership, myReview, submitReview],
+      deleteAccount, acknowledgeIncident, cloudLinked, listDevices, signOutDevice, signOutOtherDevices, linkNow, membership, myReview, submitReview],
   )
   return <SessionCtx.Provider value={value}>{children}</SessionCtx.Provider>
 }

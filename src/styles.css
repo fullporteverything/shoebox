@@ -511,6 +511,7 @@ p { margin: 0; }
 .scanner .lbl { font-size: 12.5px; color: var(--sea); display: flex; gap: 8px; align-items: center; font-weight: 600; }
 .scanner .lbl i { width: 7px; height: 7px; border-radius: 50%; background: var(--sea); animation: ping 1.6s infinite; }
 @keyframes scanbar { 0%, 100% { transform: translateY(0); opacity: 0.3; } 12% { opacity: 1; } 22% { transform: translateY(70px); opacity: 1; } 30% { opacity: 0; } }
+.bandit-peek { position: absolute; right: 5%; bottom: 96px; z-index: 0; filter: drop-shadow(0 10px 18px rgb(0 0 0 / 0.25)); }
 .bins { position: absolute; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .bin { padding: 14px; border-radius: 18px; text-align: left; }
 .bin .bt { font-weight: 700; font-size: 13.5px; display: flex; align-items: center; gap: 8px; }
@@ -527,7 +528,7 @@ p { margin: 0; }
 .step .n { font-family: var(--font-mono); font-size: 12.5px; color: var(--gold-ink); }
 .step h3 { font-size: 21px; margin: 12px 0 8px; }
 .step p { color: var(--ink-2); font-size: 14.5px; }
-.step .ill { height: 110px; border-radius: 14px; margin-top: 18px; background: color-mix(in srgb, var(--bg) 50%, transparent); border: 1px solid var(--glass-border); display: grid; place-items: center; overflow: hidden; position: relative; }
+.step .ill { height: 124px; border-radius: 14px; margin-top: 18px; background: color-mix(in srgb, var(--bg) 50%, transparent); border: 1px solid var(--glass-border); display: grid; place-items: center; overflow: hidden; position: relative; }
 
 .sec-band { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: center; padding: 36px; }
 @media (max-width: 860px) { .sec-band { grid-template-columns: 1fr; padding: 24px; } }
@@ -937,7 +938,19 @@ input[type='date']::-webkit-calendar-picker-indicator { cursor: pointer; opacity
   .bandit:not(.still) .b-tail { transform-box: view-box; transform-origin: 160px 222px; animation: bandit-tail 3.4s ease-in-out infinite alternate; }
   .bandit:not(.still) .b-wave { transform-box: view-box; transform-origin: 104px 186px; animation: bandit-wave 1.8s ease-in-out infinite; }
   .bandit:not(.still) .b-zzz { animation: bandit-zzz 3.2s ease-in-out infinite; }
+  .bandit:not(.still) .b-head { animation: bandit-bob 3.6s ease-in-out infinite; }
+  .bandit:not(.still) .b-ear-l, .bandit:not(.still) .b-ear-r { transform-box: view-box; transform-origin: 86px 84px; animation: bandit-ear 7s ease-in-out infinite; }
+  .bandit:not(.still) .b-ear-r { animation-delay: -3.1s; animation-duration: 9s; }
+  .bandit:not(.still) .b-spark { transform-box: fill-box; transform-origin: center; animation: bandit-spark 1.8s ease-in-out infinite; }
+  .bandit.watching .b-pupil { transform: translate(var(--bx, 0px), var(--by, 0px)); transition: transform 0.14s ease-out; }
+  .bandit.hop:hover, a:hover > .bandit.hop, .brand:hover .bandit.hop { animation: bandit-hop 0.6s cubic-bezier(.3,1.6,.5,1); }
+  .bandit.pop { animation: bandit-pop 0.7s cubic-bezier(.3,1.5,.5,1) both; animation-delay: var(--d, 0s); }
 }
+@keyframes bandit-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(2.5px); } }
+@keyframes bandit-ear { 0%, 88%, 100% { transform: rotate(0); } 91% { transform: rotate(-10deg); } 94% { transform: rotate(4deg); } 97% { transform: rotate(-4deg); } }
+@keyframes bandit-spark { 0%, 100% { transform: scale(1) rotate(0); opacity: 1; } 50% { transform: scale(0.55) rotate(25deg); opacity: 0.6; } }
+@keyframes bandit-hop { 0%, 100% { transform: translateY(0) scale(1); } 30% { transform: translateY(-5px) scale(1.04, 0.96); } 60% { transform: translateY(0) scale(0.97, 1.03); } }
+@keyframes bandit-pop { from { transform: translateY(14px) scale(0.6); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes bandit-blink { 0%, 92%, 100% { transform: scaleY(1); } 94% { transform: scaleY(0.12); } }
 @keyframes bandit-tail { from { transform: rotate(-3deg); } to { transform: rotate(4deg); } }
 @keyframes bandit-wave { 0%, 60%, 100% { transform: rotate(0); } 15%, 45% { transform: rotate(-9deg); } 30% { transform: rotate(5deg); } }

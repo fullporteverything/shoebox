@@ -1,6 +1,7 @@
 import React from 'react'
 import type { ReactNode } from 'react'
-import { Icon, Logo } from '../components/icons.js'
+import { Icon } from '../components/icons.js'
+import { Bandit } from '../components/Bandit.js'
 import { Link, Money } from '../components/ui.js'
 import { legalDocs } from '../legal/content.js'
 import { RULES_REVIEWED } from '../lib/tax/rules.js'
@@ -15,7 +16,7 @@ export function PublicFrame({ children }: { children: ReactNode }) {
     <div className="public">
       <header className="pub-nav glass-card">
         <Link to="/" className="brand" aria-label="Shoebox home">
-          <Logo size={30} />
+          <Bandit pose="head" size={38} watch hop />
           <span className="brand-name" style={{ display: 'inline' }}>Shoebox</span>
         </Link>
         <nav className="pub-links">
@@ -68,6 +69,7 @@ function Sorter() {
         </div>
       ))}
       <div className="scanbar" />
+      <div className="bandit-peek"><Bandit pose="head" size={70} watch hop /></div>
       <div className="bins">
         {[
           { t: 'Meals', s: 'Sch C · 50%', v: 42.2, h: 12 },
@@ -128,18 +130,16 @@ export function Landing() {
         </div>
         <div className="steps stagger">
           {[
-            { n: '01', t: 'Capture', p: 'Photograph a receipt, or drop in a screenshot of an invoice, a bill, a donation letter or a tax form. Photos are shrunk and stripped of location data first.', icon: 'camera' as const },
-            { n: '02', t: 'Sort', p: 'AI reads the merchant, date and amounts. Then a rules engine applies IRS limits, such as 50% on meals and $25 per gift, and adds your state’s quirks.', icon: 'sparkle' as const },
-            { n: '03', t: 'Confirm', p: 'You see why each item landed where it did, adjust the business share, and confirm. Your tax map fills in as you go.', icon: 'check' as const },
+            { n: '01', t: 'Capture', p: 'Photograph a receipt, or drop in a screenshot of an invoice, a bill, a donation letter or a tax form. Photos are shrunk and stripped of location data first.', pose: 'receipt' as const },
+            { n: '02', t: 'Sort', p: 'AI reads the merchant, date and amounts. Then a rules engine applies IRS limits, such as 50% on meals and $25 per gift, and adds your state’s quirks.', pose: 'thinking' as const },
+            { n: '03', t: 'Confirm', p: 'You see why each item landed where it did, adjust the business share, and confirm. Your tax map fills in as you go.', pose: 'celebrate' as const },
           ].map((s, i) => (
             <div key={s.n} className="card step lift" style={{ ['--i' as string]: i }}>
               <div className="n">{s.n}</div>
               <h3>{s.t}</h3>
               <p>{s.p}</p>
               <div className="ill">
-                <span style={{ width: 56, height: 56, borderRadius: 18, display: 'grid', placeItems: 'center', background: 'var(--gold-soft)', color: 'var(--gold-ink)' }}>
-                  <Icon name={s.icon} size={28} />
-                </span>
+                <Bandit pose={s.pose} size={104} hop className="pop" style={{ ['--d' as string]: `${0.15 + i * 0.12}s` }} />
               </div>
             </div>
           ))}

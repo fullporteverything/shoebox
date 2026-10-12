@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 
 // Bandit, the Shoebox raccoon. He keeps every receipt.
 //
@@ -47,16 +47,20 @@ function Eye({ x, face, small }: { x: number; face: Face; small?: boolean }) {
     return (
       <>
         <circle cx={x} cy={y} r={16} fill="#fff" />
-        <circle cx={x + 1} cy={y + 1} r={10.5} fill={O} />
-        <circle cx={x - 3} cy={y - 3.5} r={4.5} fill="#fff" />
+        <g className="b-pupil">
+          <circle cx={x + 1} cy={y + 1} r={10.5} fill={O} />
+          <circle cx={x - 3} cy={y - 3.5} r={4.5} fill="#fff" />
+        </g>
       </>
     )
   return (
     <>
       <circle cx={x} cy={y} r={face === 'worried' ? 14 : 13} fill="#fff" />
-      <circle cx={x + dx} cy={y + dy} r={r} fill={O} />
-      <circle cx={x + dx - 3.5} cy={y + dy - 4} r={3.4} fill="#fff" />
-      <circle cx={x + dx + 3.5} cy={y + dy + 3.5} r={1.5} fill="#fff" />
+      <g className="b-pupil">
+        <circle cx={x + dx} cy={y + dy} r={r} fill={O} />
+        <circle cx={x + dx - 3.5} cy={y + dy - 4} r={3.4} fill="#fff" />
+        <circle cx={x + dx + 3.5} cy={y + dy + 3.5} r={1.5} fill="#fff" />
+      </g>
     </>
   )
 }
@@ -66,8 +70,8 @@ function Head({ face, small }: { face: Face; small?: boolean }) {
   const sw = small ? 11 : SW
   return (
     <g className="b-head">
-      <Ear sw={sw} />
-      <g transform="matrix(-1 0 0 1 256 0)"><Ear sw={sw} /></g>
+      <g className="b-ear-l"><Ear sw={sw} /></g>
+      <g transform="matrix(-1 0 0 1 256 0)"><g className="b-ear-r"><Ear sw={sw} /></g></g>
       <path
         d="M128 38c44 0 76 24 80 60 5 6 10 12 13 20-5 3-11 4-16 5 3 5 6 10 7 16-8 2-15 3-22 3-14 16-38 22-62 22s-48-6-62-22c-7 0-14-1-22-3 1-6 4-11 7-16-5-1-11-2-16-5 3-8 8-14 13-20 4-36 36-60 80-60z"
         fill={FUR}
@@ -174,7 +178,11 @@ function GoldBox() {
 }
 
 function Sparkle({ x, y, s = 1, fill = GOLD }: { x: number; y: number; s?: number; fill?: string }) {
-  return <path transform={`translate(${x} ${y}) scale(${s})`} d="M0-11l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill={fill} stroke={O} strokeWidth={3} strokeLinejoin="round" />
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`}>
+      <path className="b-spark" style={{ animationDelay: `${((x + y) % 7) * -0.3}s` }} d="M0-11l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill={fill} stroke={O} strokeWidth={3} strokeLinejoin="round" />
+    </g>
+  )
 }
 
 const tailSit = { d: 'M160 222c46 8 76-16 70-52', end: [230, 170] as [number, number] }
@@ -292,6 +300,8 @@ export function Bandit({
   className,
   style,
   still,
+  watch,
+  hop,
 }: {
   pose?: BanditPose
   size?: number
@@ -301,15 +311,49 @@ export function Bandit({
   style?: React.CSSProperties
   /** No idle motion (blinks, tail sway). */
   still?: boolean
+  /** Eyes follow the pointer around the page. */
+  watch?: boolean
+  /** A little hop when hovered. */
+  hop?: boolean
 }) {
   const a11y = label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': true as const }
+  const ref = useRef<SVGSVGElement>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!watch || still || !el || typeof window === 'undefined') return
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    let raf = 0
+    let px = 0
+    let py = 0
+    const apply = () => {
+      raf = 0
+      const r = el.getBoundingClientRect()
+      const dx = px - (r.left + r.width / 2)
+      const dy = py - (r.top + r.height * 0.42)
+      const d = Math.hypot(dx, dy) || 1
+      const k = Math.min(1, d / 260) * 4.5 // view-box units the pupils may travel
+      el.style.setProperty('--bx', `${((dx / d) * k).toFixed(2)}px`)
+      el.style.setProperty('--by', `${((dy / d) * k * 0.8).toFixed(2)}px`)
+    }
+    const move = (e: PointerEvent) => {
+      px = e.clientX
+      py = e.clientY
+      if (!raf) raf = requestAnimationFrame(apply)
+    }
+    window.addEventListener('pointermove', move, { passive: true })
+    return () => {
+      window.removeEventListener('pointermove', move)
+      if (raf) cancelAnimationFrame(raf)
+    }
+  }, [watch, still])
   return (
     <svg
+      ref={ref}
       xmlns="http://www.w3.org/2000/svg"
       viewBox={views[pose] ?? '0 0 256 256'}
       width={size}
       height={size}
-      className={['bandit', `bandit-${pose}`, still ? 'still' : '', className ?? ''].filter(Boolean).join(' ')}
+      className={['bandit', `bandit-${pose}`, still ? 'still' : '', watch ? 'watching' : '', hop ? 'hop' : '', className ?? ''].filter(Boolean).join(' ')}
       style={style}
       focusable="false"
       {...a11y}

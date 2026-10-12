@@ -4,6 +4,7 @@ import type { MyReview, ReviewSummary } from '../lib/cloud.js'
 import { useSession } from '../lib/session.js'
 import { Icon } from './icons.js'
 import { Select } from './Select.js'
+import { motionReduced } from '../lib/motion.js'
 
 function Stars({ value, size = 16 }: { value: number; size?: number }) {
   return (
@@ -17,7 +18,7 @@ function Stars({ value, size = 16 }: { value: number; size?: number }) {
   )
 }
 
-const reducedMotion = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
+const reducedMotion = motionReduced
 
 // Approved reviews only, newest first, with the average over every approved
 // review. Renders nothing until there's at least one real review.

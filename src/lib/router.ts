@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { flushSync } from 'react-dom'
+import { motionReduced } from './motion.js'
 
 // Hash router with View Transitions. Routes look like "/app/inbox".
 
@@ -21,7 +22,7 @@ window.addEventListener('hashchange', () => {
   if (r !== current) set(r)
 })
 
-const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+const reduced = motionReduced
 
 export function navigate(to: string, opts: { replace?: boolean } = {}) {
   if (to === current) return

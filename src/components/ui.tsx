@@ -7,6 +7,7 @@ import { useSession } from '../lib/session.js'
 import { Icon } from './icons.js'
 import { usdOf } from '../lib/tax/advisor.js'
 import type { Receipt } from '../lib/types.js'
+import { motionReduced } from '../lib/motion.js'
 
 export const money = (n: number, cents = true) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 })
@@ -44,7 +45,7 @@ export function CountUp({ value, format = (n: number) => money(n), duration = 90
     const start = performance.now()
     const a = from.current
     let raf = 0
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    const reduce = motionReduced()
     const step = (t: number) => {
       const k = reduce ? 1 : Math.min(1, (t - start) / duration)
       const e = 1 - Math.pow(1 - k, 4)

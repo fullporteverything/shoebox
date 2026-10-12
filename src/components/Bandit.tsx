@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react'
+import { motionReduced } from '../lib/motion.js'
 
 // Bandit, the Shoebox raccoon. He keeps every receipt.
 //
@@ -321,7 +322,7 @@ export function Bandit({
   useEffect(() => {
     const el = ref.current
     if (!watch || still || !el || typeof window === 'undefined') return
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    if (motionReduced()) return
     let raf = 0
     let px = 0
     let py = 0

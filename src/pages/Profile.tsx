@@ -15,6 +15,7 @@ import { entityOptions } from '../lib/tax/entity.js'
 import { Select } from '../components/Select.js'
 import { ReviewCard } from '../components/Reviews.js'
 import { FoundingCard } from '../components/Founding.js'
+import { motionReduced, setMotionReduced } from '../lib/motion.js'
 
 function TwoFactorCard() {
   const { twoFactor, disableTwoFactor, regenerateRecovery, toast } = useSession()
@@ -191,6 +192,21 @@ function DevicesCard() {
   )
 }
 
+function MotionCard() {
+  const [reduce, setReduce] = useState(motionReduced)
+  return (
+    <div className="card rise" style={{ animationDelay: '0.12s' }}>
+      <div className="card-head">
+        <h2>Reduce motion</h2>
+        <Switch checked={reduce} onChange={(v) => { setMotionReduced(v); setReduce(v) }} label="Reduce motion" />
+      </div>
+      <p className="muted" style={{ fontSize: 14 }}>
+        {reduce ? 'Animations are off in this browser.' : 'Turn this on if moving parts make you uncomfortable. It stops the animations in this browser.'}
+      </p>
+    </div>
+  )
+}
+
 function SavingsShareCard() {
   const { profile, savePlan, cloudLinked } = useSession()
   if (!cloudLinked || !profile) return null
@@ -356,6 +372,7 @@ export function Profile({ tab }: { tab: 'profile' | 'settings' }) {
         </div>
         <div className="stack">
           <SavingsShareCard />
+          <MotionCard />
           <div className="card rise" style={{ animationDelay: '0.12s' }}>
             <div className="card-head"><h2>Agreements</h2></div>
             <p className="muted" style={{ fontSize: 14 }}>You accepted the terms version {TERMS_VERSION}.</p>

@@ -1,3 +1,4 @@
+import { Bandit } from './Bandit.js'
 import React from 'react'
 
 // Stroke icons drawn for this app, 24px grid.
@@ -52,21 +53,7 @@ export function Icon({ name, size, className, title }: { name: IconName; size?: 
   )
 }
 
+// The brand mark is Bandit's head. His eyes follow the pointer and he hops on hover.
 export function Logo({ size = 32 }: { size?: number }) {
-  // An open box with a receipt rising out of it.
-  return (
-    <svg className="brand-mark" width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
-      <defs>
-        <linearGradient id="sb-g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="var(--gold-2)" />
-          <stop offset="1" stopColor="var(--gold)" />
-        </linearGradient>
-      </defs>
-      <rect x="9.5" y="3" width="13" height="16" rx="1.5" fill="var(--ink)" opacity="0.92" />
-      <path d="M12.5 7.5h7M12.5 10.5h7M12.5 13.5h4" stroke="var(--bg)" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M3.5 14.5 7 12h18l3.5 2.5V26a2 2 0 0 1-2 2h-21a2 2 0 0 1-2-2z" fill="url(#sb-g)" />
-      <path d="M3.5 14.5h25" stroke="var(--on-gold)" strokeOpacity="0.35" strokeWidth="1.2" />
-      <rect x="12.5" y="18" width="7" height="2.4" rx="1.2" fill="var(--on-gold)" opacity="0.5" />
-    </svg>
-  )
+  return <Bandit pose="head" size={size} watch hop className="brand-mark" />
 }

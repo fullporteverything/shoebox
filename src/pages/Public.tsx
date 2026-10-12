@@ -2,6 +2,7 @@ import React from 'react'
 import type { ReactNode } from 'react'
 import { Icon } from '../components/icons.js'
 import { Bandit } from '../components/Bandit.js'
+import { motionReduced, setMotionReduced } from '../lib/motion.js'
 import { Link, Money } from '../components/ui.js'
 import { legalDocs } from '../legal/content.js'
 import { RULES_REVIEWED } from '../lib/tax/rules.js'
@@ -9,6 +10,15 @@ import { useSession } from '../lib/session.js'
 import { ReviewCarousel } from '../components/Reviews.js'
 import { FoundingBand } from '../components/Founding.js'
 import { SavedCounter } from '../components/SavedCounter.js'
+
+function MotionToggle() {
+  const [reduce, setReduce] = React.useState(motionReduced)
+  return (
+    <button type="button" className="link-btn" aria-pressed={reduce} onClick={() => { setMotionReduced(!reduce); setReduce(!reduce) }}>
+      {reduce ? 'Turn motion back on' : 'Reduce motion'}
+    </button>
+  )
+}
 
 export function PublicFrame({ children }: { children: ReactNode }) {
   const { phase } = useSession()
@@ -41,6 +51,7 @@ export function PublicFrame({ children }: { children: ReactNode }) {
             {legalDocs.map((d) => (
               <Link key={d.slug} to={`/legal/${d.slug}`}>{d.short}</Link>
             ))}
+            <MotionToggle />
           </nav>
           </div>
         </footer>
